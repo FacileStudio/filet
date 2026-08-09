@@ -1,0 +1,153 @@
+name: filet
+description: Run filet's style, quality and architecture rules, annotate the diff, and report the run to Antenne.
+author: Facile Studio
+
+branding:
+  icon: filter
+  color: purple
+
+inputs:
+  version:
+    description: filet version to install, as a Go module version. Pin it — main is not a contract.
+    default: v0.2.0
+  path:
+    description: Directory to check, relative to the repository root.
+    default: .
+  fail-on:
+    description: Severity that fails the job — info, warn, error or never.
+    default: error
+  sarif:
+    description: >-
+      Also upload SARIF to GitHub code scanning. Needs `security-events: write`,
+      and on a private repository it needs GitHub Advanced Security — leave it
+      off there, or the upload fails on a permission error that has nothing to
+      do with your code. Diff annotations do not need any of that and are on
+      unconditionally.
+    default: 'false'
+  antenne-url:
+    description: Antenne webhook URL to report the run to. Empty disables reporting.
+    default: ''
+  antenne-secret:
+    description: Shared secret the payload is signed with, HMAC-SHA256 over the body.
+    default: ''
+
+outputs:
+  grade:
+    description: Letter grade from A to F.
+    value: ${{ steps.check.outputs.grade }}
+  errors:
+    description: Number of error-severity findings.
+    value: ${{ steps.check.outputs.errors }}
+  warnings:
+    description: Number of warning-severity findings.
+    value: ${{ steps.check.outputs.warnings }}
+  report:
+    description: Path to the JSON report on the runner.
+    value: ${{ steps.check.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - name: install filet
+      shell: bash
+      env:
+        FILET_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        GOBIN="${RUNNER_TEMP}/filet-bin" go install "github.com/FacileStudio/filet@${FILET_VERSION}"
+        echo "${RUNNER_TEMP}/filet-bin" >> "$GITHUB_PATH"
+
+    - name: check
+      id: check
+      shell: bash
+      env:
+        FILET_PATH: ${{ inputs.path }}
+        FILET_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        set -uo pipefail
+        report="${RUNNER_TEMP}/filet.json"
+
+        filet check "$FILET_PATH" -format github -fail never
+        filet check "$FILET_PATH" -format json -fail "$FILET_FAIL_ON" > "$report"
+        status=$?
+
+        {
+          echo "report=${report}"
+          jq -r '"grade=\(.grade)", "errors=\(.counts.error)", "warnings=\(.counts.warn)"' "$report"
+        } >> "$GITHUB_OUTPUT"
+
+        exit $status
+
+    - name: summary
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        report="${RUNNER_TEMP}/filet.json"
+        [ -f "$report" ] || exit 0
+        {
+          echo "### filet — grade $(jq -r .grade "$report")"
+          echo
+          jq -r '"\(.counts.error) errors, \(.counts.warn) warnings, \(.counts.info) info over \(.files) files and \(.lines) lines"' "$report"
+          echo
+          echo '| severity | rule | location | message |'
+          echo '|---|---|---|---|'
+          jq -r '.findings[:30][] | "| \(.severity) | `\(.rule)` | `\(.file):\(.line)` | \(.message) |"' "$report"
+        } >> "$GITHUB_STEP_SUMMARY"
+
+    - name: sarif
+      if: ${{ always() && inputs.sarif == 'true' }}
+      shell: bash
+      run: filet check "${{ inputs.path }}" -format sarif -fail never > "${RUNNER_TEMP}/filet.sarif"
+
+    - name: upload sarif
+      if: ${{ always() && inputs.sarif == 'true' }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ runner.temp }}/filet.sarif
+        category: filet
+
+    - name: report to antenne
+      if: ${{ always() && inputs.antenne-url != '' }}
+      shell: bash
+      env:
+        ANTENNE_URL: ${{ inputs.antenne-url }}
+        ANTENNE_SECRET: ${{ inputs.antenne-secret }}
+        CHECK_OUTCOME: ${{ steps.check.outcome }}
+      run: |
+        set -euo pipefail
+        report="${RUNNER_TEMP}/filet.json"
+        [ -f "$report" ] || exit 0
+        payload="${RUNNER_TEMP}/filet-antenne.json"
+
+        # A pull_request run reports the head branch: GITHUB_REF_NAME on that
+        # event is the merge ref (`42/merge`), and Antenne decides whether to
+        # deliver or only log by comparing the branch to the default one.
+        branch="$(jq -r '.pull_request.head.ref // ""' "$GITHUB_EVENT_PATH")"
+        [ -n "$branch" ] || branch="$GITHUB_REF_NAME"
+        default_branch="$(jq -r '.repository.default_branch // "main"' "$GITHUB_EVENT_PATH")"
+
+        status=failure
+        [ "$CHECK_OUTCOME" = "success" ] && status=success
+
+        # Only the first 20 findings travel: a bad run has thousands, nobody
+        # reads past the first screen of a Matrix message, and the full report
+        # is one click away in runUrl.
+        jq --arg repository "$GITHUB_REPOSITORY" \
+           --arg branch "$branch" \
+           --arg defaultBranch "$default_branch" \
+           --arg commit "$GITHUB_SHA" \
+           --arg actor "$GITHUB_ACTOR" \
+           --arg status "$status" \
+           --arg runUrl "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+           '{repository: $repository, branch: $branch, defaultBranch: $defaultBranch,
+             commit: $commit, actor: $actor, status: $status, runUrl: $runUrl,
+             grade: .grade, files: .files, lines: .lines, counts: .counts,
+             findings: .findings[:20]}' "$report" > "$payload"
+
+        signature="sha256=$(openssl dgst -sha256 -hmac "$ANTENNE_SECRET" -hex < "$payload" | sed 's/^.*= //')"
+        curl --silent --show-error --fail-with-body --max-time 20 \
+          -X POST "$ANTENNE_URL" \
+          -H 'content-type: application/json' \
+          -H "x-filet-signature-256: ${signature}" \
+          --data-binary "@${payload}"

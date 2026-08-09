@@ -196,3 +196,26 @@ func Generate() {}
 		}
 	}
 }
+
+func TestSentinelErrorsAreNotSharedMutableState(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Style.BanGlobalMutable = true
+	body := `package sentinel
+
+import (
+	"errors"
+	"fmt"
+)
+
+var ErrNotFound = errors.New("not found")
+
+var ErrWrapped = fmt.Errorf("wrapped: %w", ErrNotFound)
+
+var Registry = map[string]int{}
+`
+
+	ids := ruleIDs(CheckGo(cfg, source(t, "sentinel.go", body)))
+	if n := countRule(CheckGo(cfg, source(t, "sentinel.go", body)), "go.global.mutable"); n != 1 {
+		t.Fatalf("want only Registry flagged, got %d findings: %v", n, ids)
+	}
+}

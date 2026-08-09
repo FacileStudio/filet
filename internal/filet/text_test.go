@@ -193,3 +193,23 @@ func TestCommentedCodeIsAStatementNotProse(t *testing.T) {
 		}
 	}
 }
+
+func TestProseBeginningWithPackageIsNotCommentedOutCode(t *testing.T) {
+	cfg := DefaultConfig()
+	body := `// Package auth authenticates dashboard callers.
+//
+// When the suite's unified auth
+// package arrives, it replaces Service as the Authenticator and supplies its own
+// login routes.
+package auth
+`
+
+	if n := countRule(CheckGeneric(cfg, source(t, "auth.go", body)), "gen.commented.code"); n != 0 {
+		t.Error("a wrapped sentence in a package doc is prose, not a package clause")
+	}
+
+	commented := "// package auth\nfunc f() {}\n"
+	if n := countRule(CheckGeneric(cfg, source(t, "c.go", commented)), "gen.commented.code"); n != 1 {
+		t.Error("an actual commented-out package clause must still be caught")
+	}
+}

@@ -9,7 +9,7 @@ import (
 	"github.com/FacileStudio/filet/internal/filet"
 )
 
-const version = "0.1.0"
+const version = "0.2.0"
 
 const usage = `filet — style checker, code roaster and test runner
 
@@ -25,7 +25,7 @@ usage:
 droast is an alias for "filet docker".
 
 flags:
-  -format text|json    output format (default text)
+  -format auto|text|line|json|sarif|github   output format (default auto)
   -fail info|warn|error|never   severity that makes the command exit 1
   -quiet               only print the summary
 `

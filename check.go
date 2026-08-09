@@ -19,14 +19,14 @@ type commonFlags struct {
 func parseCommon(name string, args []string) (*commonFlags, error) {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	c := &commonFlags{}
-	fs.StringVar(&c.format, "format", "auto", "output format: auto, text, line or json")
+	fs.StringVar(&c.format, "format", "auto", "output format: auto, text, line, json, sarif or github")
 	fs.StringVar(&c.fail, "fail", "", "severity that makes the command exit 1")
 	fs.BoolVar(&c.quiet, "quiet", false, "only print the summary")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
 	if !validFormat(c.format) {
-		return nil, fmt.Errorf("-format: unknown format %q (use auto, text, line or json)", c.format)
+		return nil, fmt.Errorf("-format: unknown format %q (use auto, text, line, json, sarif or github)", c.format)
 	}
 	c.target = "."
 	if fs.NArg() > 0 {
@@ -115,6 +115,10 @@ func render(report filet.Report, c *commonFlags, roast bool) error {
 	switch resolveFormat(c.format) {
 	case "json":
 		return filet.WriteJSON(os.Stdout, report)
+	case "sarif":
+		return filet.WriteSARIF(os.Stdout, report, version)
+	case "github":
+		return filet.WriteGitHub(os.Stdout, report)
 	case "line":
 		if c.quiet {
 			return nil
@@ -141,7 +145,7 @@ func resolveFormat(format string) string {
 
 func validFormat(format string) bool {
 	switch format {
-	case "auto", "text", "line", "json":
+	case "auto", "text", "line", "json", "sarif", "github":
 		return true
 	}
 	return false

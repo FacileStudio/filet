@@ -13,7 +13,11 @@ var (
 	// or a wider indent means a godoc or markdown code block, which is
 	// documentation and must survive.
 	commentedCode = regexp.MustCompile(`^\s*(//|#) ?(` +
-		`(func|def|const|let|var|import|export|package)(\s|$)` +
+		`(func|def|const|let|var|import|export)(\s|$)` +
+		// A package clause is exactly two tokens. Without that anchor, any
+		// wrapped sentence in a package doc whose line happens to begin with
+		// the word "package" reads as commented-out code.
+		`|package\s+\w+\s*$` +
 		`|(if|for|while|switch|case|class|else|elif)(\s|$).*[(){};=]` +
 		`|return\s+\S+\s*$` +
 		`|(break|continue|fallthrough|pass)\s*;?\s*$` +
@@ -104,16 +108,27 @@ func (s *lineScan) countFunc(n int, raw string) {
 	}
 }
 
+// brace tracks block depth one character at a time, and scores the line on the
+// depth that is still open once the line ends.
+//
+// Two things fall out of that, both deliberate. Counting the braces on a line
+// and applying every close before every open gets the wrong answer whenever a
+// line closes deeper than it is and then reopens: the clamp at zero swallows
+// the underflow and the opens land on top of the floor, leaving the counter too
+// high for the rest of the file — which is what the Go table-driven idiom
+// `}{{"a"}, {"b"}}` does. And a brace pair that opens and closes on the same
+// line nests nothing a reader has to hold in their head, so `[]string{"a"}` or
+// `if err != nil { return }` must not score: this rule is about blocks, and a
+// composite literal is not one.
 func (s *lineScan) brace(n int, stripped string) {
-	code := codeOnly(stripped)
-	if closes := strings.Count(code, "}"); closes > 0 {
-		s.depth = max(0, s.depth-closes)
+	for _, c := range codeOnly(stripped) {
+		switch c {
+		case '{':
+			s.depth++
+		case '}':
+			s.depth = max(0, s.depth-1)
+		}
 	}
-	opens := strings.Count(code, "{")
-	if opens == 0 {
-		return
-	}
-	s.depth += opens
 	if s.depth > s.maxDepth {
 		s.maxDepth, s.maxDepthLine = s.depth, n
 	}

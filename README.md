@@ -4,6 +4,7 @@
 
 A single Go binary that checks your coding style, roasts your code, roasts your Dockerfiles,
 and runs your test suites. One dependency, `goccy/go-yaml`, so the config file can have comments.
+A composite GitHub action ships with it — see [In CI](#in-ci).
 
 ```
 filet check   [path]   style, quality and architecture rules
@@ -144,7 +145,7 @@ filet check . -fail warn       # exit 1 on warnings too
 
 ### Output formats
 
-`-format` takes `auto` (the default), `text`, `line` or `json`.
+`-format` takes `auto` (the default), `text`, `line`, `json`, `sarif` or `github`.
 
 **`auto`** picks `text` when stdout is a terminal and `line` when it is not, so a pipe or a
 redirect gets something parseable without anyone passing a flag. Pass `-format text` explicitly
@@ -178,7 +179,26 @@ $ filet check tronc | grep ': warn:' | wc -l
 Vim reads it with `set errorformat=%f:%l:%c:\ %t%*[a-z]:\ %m`, and Emacs `compile-mode` parses it
 out of the box. `-quiet` suppresses the lines entirely, leaving only the exit code.
 
-**`json`** carries the same findings plus `files` and `lines` totals, for anything richer.
+**`json`** carries the same findings plus `files` and `lines` totals, a `counts` breakdown by
+severity and the `grade`, so a CI step reading it with `jq` does not reimplement the tally and the
+grading curve in shell.
+
+**`sarif`** is SARIF 2.1.0, which GitHub code scanning and most review tools ingest. Paths are
+emitted relative to the working directory, because an upload matches results against repository
+paths and shows nothing at all for a URI it cannot resolve — run filet from the repository root
+in CI.
+
+**`github`** writes GitHub Actions workflow commands, which the runner turns into annotations on
+the file and line inside the pull request diff:
+
+```console
+$ filet check . -format github | head -1
+::warning file=apps/api/main.go,line=12,col=1,title=go.doc.missing::exported Run has no doc comment
+```
+
+On a private repository this is the one to use: annotations cost nothing and work everywhere,
+while a SARIF upload needs code scanning, which private repositories only get with GitHub
+Advanced Security.
 
 Exit codes: `0` clean, `1` findings at or above `failOn`, `2` bad usage or unreadable input.
 `-fail never` always exits 0; an unknown value is rejected rather than silently treated as `error`.
@@ -277,6 +297,56 @@ filet test -- -run TestParse -v
 filet test -format json
 ```
 
+## In CI
+
+The repository ships a composite action. Annotations are unconditional; SARIF and the Antenne
+report are opt-in.
+
+```yaml
+- uses: FacileStudio/filet@v0.2.0
+  with:
+    version: v0.1.0
+    path: .
+    fail-on: error
+```
+
+It installs filet with `go install`, so the runner needs a Go toolchain — `ubuntu-latest` ships
+one, and any job that already uses `actions/setup-go` is covered. It writes the annotations, puts
+a graded summary table on the job page, and exposes `grade`, `errors`, `warnings` and `report`
+(the path to the JSON) as step outputs.
+
+Public repositories can add code scanning on top:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+
+steps:
+  - uses: FacileStudio/filet@v0.2.0
+    with:
+      sarif: 'true'
+```
+
+### Reporting runs to Antenne
+
+`antenne-url` posts the run to an [Antenne](https://github.com/FacileStudio/Antenne) `filet`
+webhook provider, signed with HMAC-SHA256 over the body in `x-filet-signature-256`. filet itself
+never opens a socket — the action does the posting, so the linter stays runnable offline.
+
+```yaml
+- uses: FacileStudio/filet@v0.2.0
+  with:
+    antenne-url: https://antenne.facile.studio/webhook/filet
+    antenne-secret: ${{ secrets.ANTENNE_FILET_SECRET }}
+```
+
+Antenne records every run and only delivers a failure on the default branch — a green run says
+nothing and a pull request failure is already on the author's diff. **Configure the provider's
+secret when you create it:** an Antenne webhook provider with an empty secret accepts
+unauthenticated calls on that path, which means anyone can post a fake build failure, or a fake
+success.
+
 ## Rules
 
 `filet rules` prints the full list. Disable any of them by id in `.filet.yml`.
@@ -297,7 +367,7 @@ revised is not worth much: the first set of defaults was wrong in ways only a re
 Pin a tag if you gate CI on the count:
 
 ```sh
-go install github.com/FacileStudio/filet@v0.1.0
+go install github.com/FacileStudio/filet@v0.2.0
 ```
 
 ## License

@@ -51,6 +51,53 @@ func TestRawStringBracesDoNotCount(t *testing.T) {
 	}
 }
 
+func TestClosingDeeperThanTheLineOpensDoesNotInflateDepth(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Limits.Nesting = 4
+	body := strings.Join([]string{
+		"package table",
+		"",
+		"var cases = []struct {",
+		"\ta string",
+		"\tb string",
+		"}{{\"x\", \"y\"}, {\"z\", \"w\"}}",
+		"",
+		"func f() {",
+		"\tfor _, c := range cases {",
+		"\t\tif c.a != \"\" {",
+		"\t\t\tprintln(c.b)",
+		"\t\t}",
+		"\t}",
+		"}",
+	}, "\n")
+
+	if n := countRule(CheckGeneric(cfg, source(t, "table.go", body)), "gen.nesting"); n != 0 {
+		t.Fatal("a table-driven literal must not leave the depth counter raised for the rest of the file")
+	}
+}
+
+func TestBracePairsClosedOnTheirOwnLineAreNotNesting(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Limits.Nesting = 3
+	body := strings.Join([]string{
+		"package lit",
+		"",
+		"func f(ok bool) []string {",
+		"\tswitch {",
+		"\tcase ok:",
+		"\t\tif ok {",
+		"\t\t\treturn []string{\"a\", \"b\"}",
+		"\t\t}",
+		"\t}",
+		"\treturn nil",
+		"}",
+	}, "\n")
+
+	if n := countRule(CheckGeneric(cfg, source(t, "lit.go", body)), "gen.nesting"); n != 0 {
+		t.Fatal("a composite literal opened and closed on one line is data, not a block")
+	}
+}
+
 func TestFuncsPerFileGo(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Limits.FuncsPerFile = 2
