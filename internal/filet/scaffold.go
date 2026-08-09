@@ -13,7 +13,7 @@ const template = `# filet configuration — https://github.com/saravenpi/filet
 # preset: epitech   # 5 funcs/file, 20-line funcs, 4 params, depth 3, 80 cols
 # preset: relaxed   # published tool defaults: 60-line funcs, complexity 15, no function budget
 
-ignore: [.git, node_modules, vendor, dist, build, target, testdata, .venv, __pycache__, .next, coverage]
+ignore: [.git, node_modules, vendor, dist, build, target, testdata, .venv, __pycache__, .next, .output, _app, coverage]
 
 extensions: [.go, .ts, .tsx, .js, .jsx, .svelte, .rs, .py, .c, .h, .cpp, .java, .rb, .sh]
 
@@ -33,7 +33,7 @@ limits:
 architecture:
   # requiredDirs: [internal, cmd]
   # forbiddenDirs: [internal/utils, pkg/common]
-  maxDepth: %d
+  # maxDepth: 6           # 0 (the default) disables the depth rule
   # fileNamePattern: '^[a-z0-9_]+\.go$'
   # forbiddenImports:      # keep the layers honest: prefix -> imports it must never pull in
   #   internal/domain: [net/http, database/sql]
@@ -66,7 +66,6 @@ func Scaffold(path, preset string) error {
 	body := fmt.Sprintf(template,
 		l.FileLines, l.FuncsPerFile, l.FuncLines, l.FuncStatements, l.LineLength, l.Params, l.Returns,
 		l.Nesting, l.Complexity, l.StructFields, l.InterfaceMethods,
-		cfg.Architecture.MaxDepth,
 		s.BanInlineComments, s.BanTODO, s.RequireDocComments, s.BanGlobalMutable, s.BanInit, s.BanTrailingSpace,
 		cfg.FailOn)
 

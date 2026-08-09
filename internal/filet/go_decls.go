@@ -11,12 +11,13 @@ func (g *goFile) calls() {
 	if !panics && !discards {
 		return
 	}
+	cleanup := deferredSpans(g.file)
 	ast.Inspect(g.file, func(n ast.Node) bool {
 		switch t := n.(type) {
 		case *ast.CallExpr:
 			g.panicCall(t, panics)
 		case *ast.AssignStmt:
-			g.discardedCall(t, discards)
+			g.discardedCall(t, discards && !within(cleanup, t.Pos()))
 		}
 		return true
 	})
@@ -34,7 +35,7 @@ func (g *goFile) discardedCall(as *ast.AssignStmt, enabled bool) {
 	if !enabled || !allBlank(as) {
 		return
 	}
-	g.add("go.err.discarded", as.Pos(), Warn, "every return value discarded into _")
+	g.add("go.err.discarded", as.Pos(), Info, "every return value discarded into _")
 }
 
 func (g *goFile) inBodyComments() {

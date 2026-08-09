@@ -64,14 +64,15 @@ func DefaultConfig() *Config {
 	return &Config{
 		Ignore: []string{
 			".git", "node_modules", "vendor", "dist", "build", "target",
-			"testdata", ".venv", "__pycache__", ".next", "coverage",
+			"testdata", ".venv", "__pycache__", ".next", ".output",
+			"_app", "coverage",
 		},
 		Extensions: []string{
 			".go", ".ts", ".tsx", ".js", ".jsx", ".svelte", ".rs",
 			".py", ".c", ".h", ".cpp", ".java", ".rb", ".sh",
 		},
 		Limits:       defaultLimits(),
-		Architecture: Architecture{MaxDepth: 5},
+		Architecture: Architecture{},
 		Style:        defaultStyle(),
 		FailOn:       "error",
 	}
