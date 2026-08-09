@@ -28,8 +28,10 @@ ln -sf "$(go env GOPATH)/bin/filet" "$(go env GOPATH)/bin/droast"
 ## Configuration
 
 `filet init` writes a commented starter file. `filet` then walks up from the target directory
-looking for `.filet.yml`, `.filet.yaml`, `filet.yml` or `filet.yaml`. Everything it finds is merged
-over the defaults, and the directory holding the config becomes the project root.
+looking for `.filet.yml`, `.filet.yaml`, `filet.yml` or `filet.yaml`, and **stops at the repository
+root** — a config living above your repository would apply on your machine and vanish in CI, where
+only the repository is checked out. Everything it finds is merged over the defaults, and the
+directory holding the config becomes the project root.
 
 ```yaml
 preset: epitech           # optional starting point, see below
@@ -278,6 +280,25 @@ filet test -format json
 ## Rules
 
 `filet rules` prints the full list. Disable any of them by id in `.filet.yml`.
+
+## Stability
+
+Two things are a contract, and a test fails if either moves:
+
+- **Rule ids.** Configs name them in `disabled:`, and the `line` format prints them in brackets.
+  Renaming or removing one is a breaking change, so `frozenRules` has to be edited first,
+  deliberately.
+- **The `line` format**, `path:line:column: severity: message [rule]`, pinned by a regex.
+
+Everything else may move between minor versions: thresholds, severities, which preset ships what,
+and how the `text` report is laid out. Findings are a judgement, and a judgement that can never be
+revised is not worth much: the first set of defaults was wrong in ways only a real codebase showed.
+
+Pin a tag if you gate CI on the count:
+
+```sh
+go install github.com/FacileStudio/filet@v0.1.0
+```
 
 ## License
 

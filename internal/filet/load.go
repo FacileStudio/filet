@@ -45,11 +45,24 @@ func findConfig(start string) (string, []byte) {
 			return path, raw
 		}
 		parent := filepath.Dir(cur)
-		if parent == cur {
+		if isRepoRoot(cur) || parent == cur {
 			return "", nil
 		}
 		cur = parent
 	}
+}
+
+// isRepoRoot reports whether dir holds a repository marker. The search for a
+// config stops there: a config living outside the repository would apply on a
+// developer's machine and vanish in CI, where only the repository is checked
+// out, and the two runs would disagree with nothing to show for it.
+func isRepoRoot(dir string) bool {
+	for _, marker := range []string{".git", ".hg", ".svn"} {
+		if _, err := os.Stat(filepath.Join(dir, marker)); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func configIn(dir string) (string, []byte) {
