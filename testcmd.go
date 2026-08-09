@@ -51,7 +51,7 @@ func splitTarget(args []string) (string, []string) {
 func runSuites(suites []filet.Suite, extra []string, out *os.File) []filet.Result {
 	results := make([]filet.Result, 0, len(suites))
 	for _, s := range suites {
-		fmt.Fprintf(out, "\n── %s ──\n", s.Name)
+		filet.WriteHeading(out, s)
 		results = append(results, filet.RunSuite(s, extra, out))
 	}
 	return results

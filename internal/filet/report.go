@@ -3,6 +3,7 @@ package filet
 import (
 	"encoding/json"
 	"io"
+	"sort"
 )
 
 // Report is everything a command produced, ready to render.
@@ -71,4 +72,22 @@ func WriteJSONValue(w io.Writer, v any) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+func byFile(findings []Finding) map[string][]Finding {
+	out := map[string][]Finding{}
+	for _, f := range findings {
+		out[f.File] = append(out[f.File], f)
+	}
+	return out
+}
+
+func groupNames(findings []Finding) []string {
+	seen := byFile(findings)
+	names := make([]string, 0, len(seen))
+	for n := range seen {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }

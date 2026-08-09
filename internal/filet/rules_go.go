@@ -38,9 +38,13 @@ func CheckGo(cfg *Config, f SourceFile) []Finding {
 		line:   func(p token.Pos) int { return fset.Position(p).Line },
 		noise:  noiseLines(f, parsed, fset),
 		add: func(rule string, pos token.Pos, sev Severity, msg string) {
-			if cfg.Enabled(rule) {
-				out = append(out, newFinding(rule, f.Rel, fset.Position(pos).Line, sev, msg))
+			if !cfg.Enabled(rule) {
+				return
 			}
+			at := fset.Position(pos)
+			finding := newFinding(rule, f.Rel, at.Line, sev, msg)
+			finding.Column = at.Column
+			out = append(out, finding)
 		},
 	}
 

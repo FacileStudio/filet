@@ -53,6 +53,7 @@ type Finding struct {
 	Rule     string   `json:"rule"`
 	File     string   `json:"file"`
 	Line     int      `json:"line"`
+	Column   int      `json:"column,omitempty"`
 	Message  string   `json:"message"`
 	Severity Severity `json:"-"`
 	Level    string   `json:"severity"`

@@ -3,7 +3,8 @@ package filet
 import (
 	"fmt"
 	"io"
-	"sort"
+	"path"
+	"strconv"
 	"strings"
 )
 
@@ -13,70 +14,94 @@ type TextOptions struct {
 	Quiet bool
 }
 
-// WriteText renders the report for humans, grouped by file.
+// WriteText renders the report for humans, grouped by file. It is meant to be
+// read, not parsed; use WriteLines or WriteJSON to feed another tool.
 func WriteText(w io.Writer, r Report, opts TextOptions) {
-	p := painter(Colorize(w))
+	p, g := painter(Colorize(w)), GlyphsFor(w)
 	if len(r.Findings) == 0 {
 		writeClean(w, p, r, opts.Roast)
 		return
 	}
 	if !opts.Quiet {
+		grouped := byFile(r.Findings)
 		for _, name := range groupNames(r.Findings) {
-			fmt.Fprintf(w, "\n%s\n", p(bold, name))
-			writeFile(w, p, byFile(r.Findings)[name], opts.Roast)
+			fmt.Fprintf(w, "\n%s %s\n", p(cyan, g.File), filePath(p, name))
+			writeGroup(w, p, g, grouped[name], opts.Roast)
+		}
+		fmt.Fprintln(w)
+	}
+	writeSummary(w, p, g, r, opts.Roast)
+}
+
+func filePath(p paintFn, rel string) string {
+	dir, base := path.Split(rel)
+	return p(dim, dir) + p(bold, base)
+}
+
+func writeGroup(w io.Writer, p paintFn, g Glyphs, findings []Finding, roast bool) {
+	at, rule := 0, 0
+	for _, f := range findings {
+		at = max(at, len(position(f)))
+		rule = max(rule, len(f.Rule))
+	}
+	for _, f := range findings {
+		colour := severityColor(f.Severity)
+		fmt.Fprintf(w, "  %s  %s %s  %s  %s\n",
+			p(grey, padLeft(position(f), at)),
+			p(colour, mark(g, f.Severity)),
+			p(colour, pad(f.Severity.String(), 5)),
+			p(dim, pad(f.Rule, rule)),
+			f.Message)
+		if roast && f.Roast != "" {
+			fmt.Fprintf(w, "  %s    %s\n", strings.Repeat(" ", at), p(dim, g.Arrow+" "+f.Roast))
 		}
 	}
-	writeSummary(w, p, r, opts.Roast)
+}
+
+func position(f Finding) string {
+	if f.Column > 0 {
+		return strconv.Itoa(f.Line) + ":" + strconv.Itoa(f.Column)
+	}
+	return strconv.Itoa(f.Line)
+}
+
+func mark(g Glyphs, s Severity) string {
+	switch s {
+	case Warn:
+		return g.Warn
+	case Error:
+		return g.Error
+	default:
+		return g.Info
+	}
+}
+
+func writeSummary(w io.Writer, p paintFn, g Glyphs, r Report, roast bool) {
+	info, warn, errs := r.Counts()
+	sep := " " + p(dim, g.Sep) + " "
+	fmt.Fprintf(w, "  %s%s%s\n",
+		p(dim, count(r.Files, "file", "files")), sep, p(dim, count(r.Lines, "line", "lines")))
+	fmt.Fprintf(w, "  %s%s%s%s%s\n",
+		p(severityColor(Error), count(errs, "error", "errors")), sep,
+		p(severityColor(Warn), count(warn, "warning", "warnings")), sep,
+		p(severityColor(Info), count(info, "info", "info")))
+	if roast {
+		grade := r.Grade()
+		fmt.Fprintf(w, "  %s%s%s\n", p(gradeColor(grade), "grade "+grade), sep, p(dim, verdicts[grade]))
+	}
 }
 
 func writeClean(w io.Writer, p paintFn, r Report, roast bool) {
-	fmt.Fprintf(w, "%s %d files, %d lines, nothing to complain about.\n",
-		p(green, "clean"), r.Files, r.Lines)
+	fmt.Fprintf(w, "%s %s, %s, nothing to complain about.\n",
+		p(green, "clean"), count(r.Files, "file", "files"), count(r.Lines, "line", "lines"))
 	if roast {
-		fmt.Fprintf(w, "%s %s — %s\n", p(bold, "grade  "), p(green, "A"), verdicts["A"])
+		fmt.Fprintf(w, "%s %s\n", p(green, "grade A"), p(dim, verdicts["A"]))
 	}
 }
 
-func byFile(findings []Finding) map[string][]Finding {
-	out := map[string][]Finding{}
-	for _, f := range findings {
-		out[f.File] = append(out[f.File], f)
+func count(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
 	}
-	return out
-}
-
-func groupNames(findings []Finding) []string {
-	seen := byFile(findings)
-	names := make([]string, 0, len(seen))
-	for n := range seen {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-	return names
-}
-
-func writeFile(w io.Writer, p paintFn, findings []Finding, roast bool) {
-	for _, f := range findings {
-		num := fmt.Sprint(f.Line)
-		fmt.Fprintf(w, "  %s:%s %s %s %s\n",
-			p(grey, num),
-			strings.Repeat(" ", max(0, 4-len(num))),
-			p(severityColor(f.Severity), pad(f.Severity.String(), 5)),
-			f.Message,
-			p(dim, "["+f.Rule+"]"))
-		if roast && f.Roast != "" {
-			fmt.Fprintf(w, "        %s\n", p(dim, "↳ "+f.Roast))
-		}
-	}
-}
-
-func writeSummary(w io.Writer, p paintFn, r Report, roast bool) {
-	info, warn, errs := r.Counts()
-	fmt.Fprintf(w, "\n%s %d error, %d warn, %d info across %d files (%d lines)\n",
-		p(bold, "summary"), errs, warn, info, r.Files, r.Lines)
-	if !roast {
-		return
-	}
-	grade := r.Grade()
-	fmt.Fprintf(w, "%s %s — %s\n", p(bold, "grade  "), p(gradeColor(grade), grade), verdicts[grade])
+	return strconv.Itoa(n) + " " + many
 }

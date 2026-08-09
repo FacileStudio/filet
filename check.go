@@ -19,11 +19,14 @@ type commonFlags struct {
 func parseCommon(name string, args []string) (*commonFlags, error) {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	c := &commonFlags{}
-	fs.StringVar(&c.format, "format", "text", "output format: text or json")
+	fs.StringVar(&c.format, "format", "auto", "output format: auto, text, line or json")
 	fs.StringVar(&c.fail, "fail", "", "severity that makes the command exit 1")
 	fs.BoolVar(&c.quiet, "quiet", false, "only print the summary")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
+	}
+	if !validFormat(c.format) {
+		return nil, fmt.Errorf("-format: unknown format %q (use auto, text, line or json)", c.format)
 	}
 	c.target = "."
 	if fs.NArg() > 0 {
@@ -52,6 +55,7 @@ func loadConfig(c *commonFlags) (*filet.Config, error) {
 func analyze(name string, args []string, roast bool) int {
 	c, err := parseCommon(name, args)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
 	cfg, err := loadConfig(c)
@@ -70,6 +74,7 @@ func analyze(name string, args []string, roast bool) int {
 func docker(args []string) int {
 	c, err := parseCommon("docker", args)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
 	cfg, err := loadConfig(c)
@@ -93,14 +98,9 @@ func emit(cfg *filet.Config, report filet.Report, c *commonFlags, roast bool) in
 	if roast {
 		filet.Roast(report.Findings)
 	}
-	switch c.format {
-	case "json":
-		if err := filet.WriteJSON(os.Stdout, report); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return 2
-		}
-	default:
-		filet.WriteText(os.Stdout, report, filet.TextOptions{Roast: roast, Quiet: c.quiet})
+	if err := render(report, c, roast); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
 	}
 	if strings.EqualFold(cfg.FailOn, "never") {
 		return 0
@@ -109,4 +109,40 @@ func emit(cfg *filet.Config, report filet.Report, c *commonFlags, roast bool) in
 		return 1
 	}
 	return 0
+}
+
+func render(report filet.Report, c *commonFlags, roast bool) error {
+	switch resolveFormat(c.format) {
+	case "json":
+		return filet.WriteJSON(os.Stdout, report)
+	case "line":
+		if c.quiet {
+			return nil
+		}
+		return filet.WriteLines(os.Stdout, report)
+	default:
+		filet.WriteText(os.Stdout, report, filet.TextOptions{Roast: roast, Quiet: c.quiet})
+		return nil
+	}
+}
+
+// resolveFormat turns "auto" into the grouped human report on a terminal and the
+// one-finding-per-line format everywhere else, so a pipe gets something parseable
+// without anyone having to pass a flag.
+func resolveFormat(format string) string {
+	if format != "auto" {
+		return format
+	}
+	if filet.IsTTY(os.Stdout) {
+		return "text"
+	}
+	return "line"
+}
+
+func validFormat(format string) bool {
+	switch format {
+	case "auto", "text", "line", "json":
+		return true
+	}
+	return false
 }

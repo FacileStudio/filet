@@ -33,7 +33,7 @@ jobs:
         run: go test -race -count=1 ./...
 
       - name: filet holds itself to its own defaults
-        run: go run . roast .
+        run: go run . roast . -format text
 
   build:
     runs-on: ubuntu-latest

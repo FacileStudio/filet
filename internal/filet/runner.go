@@ -3,7 +3,6 @@ package filet
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -81,6 +80,11 @@ func nodeSuite(dir string, exists func(string) bool) Suite {
 	}
 }
 
+// Command renders the command line this suite will run.
+func (s Suite) Command() string {
+	return s.Cmd + " " + strings.Join(s.Args, " ")
+}
+
 // RunSuite executes one suite, streaming its output to w.
 func RunSuite(s Suite, extra []string, w io.Writer) Result {
 	args := append(append([]string{}, s.Args...), extra...)
@@ -113,36 +117,4 @@ func RunSuite(s Suite, extra []string, w io.Writer) Result {
 		res.Err = err.Error()
 	}
 	return res
-}
-
-// WriteResults prints the per-suite summary table and returns the worst exit code.
-func WriteResults(w io.Writer, results []Result) int {
-	c := Colorize(w)
-	paint := func(color, s string) string {
-		if !c {
-			return s
-		}
-		return color + s + reset
-	}
-
-	worst := 0
-	fmt.Fprintln(w)
-	for _, r := range results {
-		status, color := "pass", green
-		if r.ExitCode != 0 {
-			status, color = "fail", red
-			if r.ExitCode > worst {
-				worst = r.ExitCode
-			}
-		}
-		fmt.Fprintf(w, "%s %s %s %s\n",
-			paint(color, pad(status, 4)),
-			pad(r.Suite, 8),
-			paint(dim, r.Duration.Round(time.Millisecond).String()),
-			paint(grey, r.Command))
-		if r.Err != "" {
-			fmt.Fprintf(w, "     %s\n", paint(red, r.Err))
-		}
-	}
-	return worst
 }

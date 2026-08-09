@@ -117,9 +117,46 @@ oversized interfaces and package-level mutable state are measured rather than gu
 ```sh
 filet check .
 filet roast internal/          # same findings, plus commentary
-filet check . -format json     # for CI
 filet check . -fail warn       # exit 1 on warnings too
 ```
+
+### Output formats
+
+`-format` takes `auto` (the default), `text`, `line` or `json`.
+
+**`auto`** picks `text` when stdout is a terminal and `line` when it is not, so a pipe or a
+redirect gets something parseable without anyone passing a flag. Pass `-format text` explicitly
+when you want the grouped report in a CI log.
+
+**`text`** is grouped by file, aligned, and coloured when the terminal says it can take it —
+`NO_COLOR` and `TERM=dumb` are honoured, and box-drawing characters degrade to ASCII unless the
+locale announces UTF-8. It is meant to be read, never parsed.
+
+**`line`** is one finding per line in the GNU error format every editor and CI annotator already
+understands. Treat it as a stable contract:
+
+```
+path:line:column: severity: message [rule]
+```
+
+```console
+$ filet check tronc | head -2
+tronc/apiref/apiref.go:7:1: info: commented-out code [gen.commented.code]
+tronc/apiref/apiref.go:82:3: info: every return value discarded into _ [go.err.discarded]
+
+$ filet check tronc | cut -d: -f1 | sort | uniq -c | sort -rn | head -3
+  15 tronc/migrate/migrate.go
+  15 tronc/errors/errors.go
+  11 tronc/spa/spa.go
+
+$ filet check tronc | grep ': warn:' | wc -l
+      39
+```
+
+Vim reads it with `set errorformat=%f:%l:%c:\ %t%*[a-z]:\ %m`, and Emacs `compile-mode` parses it
+out of the box. `-quiet` suppresses the lines entirely, leaving only the exit code.
+
+**`json`** carries the same findings plus `files` and `lines` totals, for anything richer.
 
 Exit codes: `0` clean, `1` findings at or above `failOn`, `2` bad usage or unreadable input.
 `-fail never` always exits 0; an unknown value is rejected rather than silently treated as `error`.
