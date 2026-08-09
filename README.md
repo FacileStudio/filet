@@ -1,5 +1,7 @@
 # filet
 
+[![ci](https://github.com/saravenpi/filet/actions/workflows/ci.yml/badge.svg)](https://github.com/saravenpi/filet/actions/workflows/ci.yml)
+
 A single Go binary that checks your coding style, roasts your code, roasts your Dockerfiles,
 and runs your test suites. One dependency, `goccy/go-yaml`, so the config file can have comments.
 
@@ -203,3 +205,7 @@ filet test -format json
 ## Rules
 
 `filet rules` prints the full list. Disable any of them by id in `.filet.yml`.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
