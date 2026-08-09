@@ -9,7 +9,7 @@ import (
 	"github.com/FacileStudio/filet/internal/filet"
 )
 
-const version = "0.2.0"
+const version = "0.3.0"
 
 const usage = `filet — style checker, code roaster and test runner
 
@@ -18,7 +18,7 @@ usage:
   filet roast   [flags] [path]   same rules, with commentary
   filet docker  [flags] [path]   roast every Dockerfile it finds
   filet test    [flags] [path]   detect and run the project's test suites
-  filet init    [flags] [path]   write a commented .filet.yml (-preset relaxed|epitech)
+  filet init    [flags] [path]   write a commented filet.yml (-preset relaxed|epitech)
   filet rules                    list every rule id
   filet version
 

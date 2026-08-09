@@ -11,7 +11,7 @@ filet check   [path]   style, quality and architecture rules
 filet roast   [path]   the same rules, with commentary
 filet docker  [path]   every Dockerfile it can find, roasted
 filet test    [path]   detect and run the project's test suites
-filet init    [path]   write a commented .filet.yml (-preset relaxed|epitech)
+filet init    [path]   write a commented filet.yml (-preset relaxed|epitech)
 filet rules            list every rule id
 ```
 
@@ -29,7 +29,7 @@ ln -sf "$(go env GOPATH)/bin/filet" "$(go env GOPATH)/bin/droast"
 ## Configuration
 
 `filet init` writes a commented starter file. `filet` then walks up from the target directory
-looking for `.filet.yml`, `.filet.yaml`, `filet.yml` or `filet.yaml`, and **stops at the repository
+looking for `filet.yml`, `filet.yaml`, `filet.yml` or `filet.yaml`, and **stops at the repository
 root** — a config living above your repository would apply on your machine and vanish in CI, where
 only the repository is checked out. Everything it finds is merged over the defaults, and the
 directory holding the config becomes the project root.
@@ -122,7 +122,7 @@ A directory covered by an exact pattern uses that one, so a convention carries i
 without a second config key. Globs are `path.Match`, so `*` does not cross a `/`. Findings are
 errors: you asked for the contract, so breaking it breaks the build.
 
-Paths in `architecture` always match relative to the directory holding `.filet.yml`, whatever
+Paths in `architecture` always match relative to the directory holding `filet.yml`, whatever
 directory filet was run from. Reported paths are relative to your working directory instead, so
 they stay clickable.
 
@@ -248,7 +248,7 @@ direct recursion, and each *run* of the same boolean operator — `a && b && c` 
 `funcLines` excludes blank and comment-only lines, matching `funlen`'s `ignore-comments` default, so
 documenting a function cannot push it over the limit.
 
-`filet` passes its own defaults with zero findings and no preset — its `.filet.yml` pins only the
+`filet` passes its own defaults with zero findings and no preset — its `filet.yml` pins only the
 project's directory layout. Getting there meant splitting 9 files into 22 and rewriting six
 dispatchers, not moving a single threshold. `preset: relaxed` exists as an honest escape hatch for
 projects that want the published tool defaults instead: name the regime you are in, do not silently
@@ -303,7 +303,7 @@ The repository ships a composite action. Annotations are unconditional; SARIF an
 report are opt-in.
 
 ```yaml
-- uses: FacileStudio/filet@v0.2.0
+- uses: FacileStudio/filet@v0.3.0
   with:
     version: v0.1.0
     path: .
@@ -323,7 +323,7 @@ permissions:
   security-events: write
 
 steps:
-  - uses: FacileStudio/filet@v0.2.0
+  - uses: FacileStudio/filet@v0.3.0
     with:
       sarif: 'true'
 ```
@@ -335,7 +335,7 @@ webhook provider, signed with HMAC-SHA256 over the body in `x-filet-signature-25
 never opens a socket — the action does the posting, so the linter stays runnable offline.
 
 ```yaml
-- uses: FacileStudio/filet@v0.2.0
+- uses: FacileStudio/filet@v0.3.0
   with:
     antenne-url: https://antenne.facile.studio/webhook/filet
     antenne-secret: ${{ secrets.ANTENNE_FILET_SECRET }}
@@ -349,7 +349,7 @@ success.
 
 ## Rules
 
-`filet rules` prints the full list. Disable any of them by id in `.filet.yml`.
+`filet rules` prints the full list. Disable any of them by id in `filet.yml`.
 
 ## Stability
 
@@ -367,7 +367,7 @@ revised is not worth much: the first set of defaults was wrong in ways only a re
 Pin a tag if you gate CI on the count:
 
 ```sh
-go install github.com/FacileStudio/filet@v0.2.0
+go install github.com/FacileStudio/filet@v0.3.0
 ```
 
 ## License

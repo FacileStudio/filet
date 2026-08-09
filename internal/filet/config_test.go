@@ -57,3 +57,35 @@ func TestScaffoldRoundTrips(t *testing.T) {
 		t.Fatalf("scaffolded epitech config lost its limits: %+v", cfg.Limits)
 	}
 }
+
+func TestUndottedConfigWinsAndTheDottedOneStillLoads(t *testing.T) {
+	dir := t.TempDir()
+	if err := writeTemp(filepath.Join(dir, ".filet.yml"), "limits:\n  funcLines: 7\n"); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, path, err := LoadConfig(dir)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if cfg.Limits.FuncLines != 7 {
+		t.Errorf("a repository still on the dotted name must keep working, got funcLines %d", cfg.Limits.FuncLines)
+	}
+
+	if err := writeTemp(filepath.Join(dir, "filet.yml"), "limits:\n  funcLines: 9\n"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, path, err = LoadConfig(dir)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if filepath.Base(path) != "filet.yml" || cfg.Limits.FuncLines != 9 {
+		t.Errorf("filet.yml must win over .filet.yml, got %q with funcLines %d", path, cfg.Limits.FuncLines)
+	}
+}
+
+func TestInitWritesTheUndottedName(t *testing.T) {
+	if got := ConfigNames()[0]; got != "filet.yml" {
+		t.Errorf("filet init writes ConfigNames()[0] = %q, want filet.yml", got)
+	}
+}

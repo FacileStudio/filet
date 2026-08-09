@@ -5,9 +5,14 @@ import (
 	"slices"
 )
 
-// ConfigNames returns the filenames filet looks for, in priority order.
+// ConfigNames returns the filenames filet looks for, in priority order. The
+// first is also what `filet init` writes.
+//
+// The undotted name comes first: this file is a guidelines document meant to be
+// read, edited and argued with, not machinery to be hidden. The dotted spellings
+// are still read, so a repository that has not been renamed keeps working.
 func ConfigNames() []string {
-	return []string{".filet.yml", ".filet.yaml", "filet.yml", "filet.yaml"}
+	return []string{"filet.yml", "filet.yaml", ".filet.yml", ".filet.yaml"}
 }
 
 // Limits holds the numeric thresholds every size and complexity rule compares against.
@@ -45,7 +50,7 @@ type Style struct {
 	BanTrailingSpace   bool `yaml:"banTrailingSpace"`
 }
 
-// Config is the full contents of .filet.yml.
+// Config is the full contents of filet.yml.
 type Config struct {
 	Preset       string       `yaml:"preset"`
 	Ignore       []string     `yaml:"ignore"`
