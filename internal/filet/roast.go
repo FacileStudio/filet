@@ -123,6 +123,10 @@ var punchlines = map[string][]string{
 		"This directory was explicitly banned and it came back anyway.",
 		"A utils/ directory is where cohesion goes to die.",
 	},
+	"arch.file.missing": {
+		"The convention is only a convention where somebody checks it.",
+		"Seven directories follow this pattern. This one is improvising.",
+	},
 	"arch.depth": {
 		"At this depth the import path is longer than the file.",
 		"Directory archaeology should not be part of onboarding.",

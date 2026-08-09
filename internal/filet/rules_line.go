@@ -18,20 +18,20 @@ func commentedOut(raw string) bool {
 func checkLine(cfg *Config, f SourceFile, n int, raw, line string) []Finding {
 	var out []Finding
 	if w := utf8.RuneCountInString(raw); w > cfg.Limits.LineLength && cfg.Enabled("gen.line.long") {
-		out = append(out, newFinding("gen.line.long", f.Rel, n, Info,
+		out = append(out, newFinding("gen.line.long", f.Display, n, Info,
 			fmt.Sprintf("line is %d characters (limit %d)", w, cfg.Limits.LineLength)))
 	}
 	if cfg.Style.BanTrailingSpace && cfg.Enabled("gen.trailing.space") && raw != strings.TrimRight(raw, " \t") {
-		out = append(out, newFinding("gen.trailing.space", f.Rel, n, Info, "trailing whitespace"))
+		out = append(out, newFinding("gen.trailing.space", f.Display, n, Info, "trailing whitespace"))
 	}
 	if m := leftoverMarker(cfg, f, line); m != "" {
-		out = append(out, newFinding("gen.todo", f.Rel, n, Warn, "leftover "+m+" marker"))
+		out = append(out, newFinding("gen.todo", f.Display, n, Warn, "leftover "+m+" marker"))
 	}
 	if inlineComment(cfg, f, line) {
-		out = append(out, newFinding("gen.comment.inline", f.Rel, n, Info, "inline comment trailing code"))
+		out = append(out, newFinding("gen.comment.inline", f.Display, n, Info, "inline comment trailing code"))
 	}
 	if cfg.Enabled("gen.commented.code") && commentedOut(raw) {
-		out = append(out, newFinding("gen.commented.code", f.Rel, n, Info, "commented-out code"))
+		out = append(out, newFinding("gen.commented.code", f.Display, n, Info, "commented-out code"))
 	}
 	return out
 }

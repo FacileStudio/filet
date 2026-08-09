@@ -27,7 +27,7 @@ func CheckGo(cfg *Config, f SourceFile) []Finding {
 	fset := token.NewFileSet()
 	parsed, err := parser.ParseFile(fset, f.Path, f.Src, parser.ParseComments|parser.SkipObjectResolution)
 	if err != nil {
-		return []Finding{newFinding("go.parse", f.Rel, 1, Error, "cannot parse: "+err.Error())}
+		return []Finding{newFinding("go.parse", f.Display, 1, Error, "cannot parse: "+err.Error())}
 	}
 
 	var out []Finding
@@ -42,7 +42,7 @@ func CheckGo(cfg *Config, f SourceFile) []Finding {
 				return
 			}
 			at := fset.Position(pos)
-			finding := newFinding(rule, f.Rel, at.Line, sev, msg)
+			finding := newFinding(rule, f.Display, at.Line, sev, msg)
 			finding.Column = at.Column
 			out = append(out, finding)
 		},

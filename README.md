@@ -51,10 +51,12 @@ limits:
   interfaceMethods: 5
 
 architecture:
-  requiredDirs: [internal, cmd]
+  requiredDirs: [apps/api, apps/client]
   forbiddenDirs: [internal/utils, pkg/common]
   maxDepth: 4
   fileNamePattern: '^[a-z0-9_]+\.go$'
+  requiredFiles:
+    "apps/api/modules/*": [router.go]
   forbiddenImports:
     internal/domain: [net/http, database/sql]
 
@@ -102,6 +104,24 @@ codebase rather than findings:
   what survives them is what they could not break, so flagging it twice is noise.
 - **Leave `architecture` empty until you mean it.** `maxDepth` is off by default: directory depth in
   a SvelteKit or monorepo tree is decided by the framework, not by your team.
+
+`requiredFiles` states a per-directory contract: every directory matching the glob must contain the
+files it lists. It is how a convention stops being folklore —
+
+```yaml
+requiredFiles:
+  "apps/api/modules/*": [router.go]     # every module declares its routes
+  "apps/api/modules/docs": []           # except this one, which serves no HTTP
+  "apps/*": [package.json]              # every workspace member is a package
+```
+
+A directory covered by an exact pattern uses that one, so a convention carries its own exceptions
+without a second config key. Globs are `path.Match`, so `*` does not cross a `/`. Findings are
+errors: you asked for the contract, so breaking it breaks the build.
+
+Paths in `architecture` always match relative to the directory holding `.filet.yml`, whatever
+directory filet was run from. Reported paths are relative to your working directory instead, so
+they stay clickable.
 
 `forbiddenImports` maps a path prefix to the imports that prefix must never pull in. It is the
 cheapest way to keep a layered architecture honest: the domain layer stops importing HTTP, the

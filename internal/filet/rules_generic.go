@@ -74,7 +74,7 @@ func (s *lineScan) fileLength() {
 		n--
 	}
 	if s.cfg.Enabled("gen.file.long") && n > s.cfg.Limits.FileLines {
-		s.out = append(s.out, newFinding("gen.file.long", s.f.Rel, 1, Warn,
+		s.out = append(s.out, newFinding("gen.file.long", s.f.Display, 1, Warn,
 			fmt.Sprintf("file is %d lines (limit %d)", n, s.cfg.Limits.FileLines)))
 	}
 }
@@ -99,7 +99,7 @@ func (s *lineScan) countFunc(n int, raw string) {
 	}
 	s.funcs++
 	if s.funcs == limit+1 {
-		s.out = append(s.out, newFinding("gen.file.funcs", s.f.Rel, n, Warn,
+		s.out = append(s.out, newFinding("gen.file.funcs", s.f.Display, n, Warn,
 			fmt.Sprintf("function %d in this file (limit %d)", s.funcs, limit)))
 	}
 }
@@ -123,7 +123,7 @@ func (s *lineScan) nesting() {
 	if !s.cfg.Enabled("gen.nesting") || s.maxDepth <= s.cfg.Limits.Nesting {
 		return
 	}
-	s.out = append(s.out, newFinding("gen.nesting", s.f.Rel, s.maxDepthLine, Warn,
+	s.out = append(s.out, newFinding("gen.nesting", s.f.Display, s.maxDepthLine, Warn,
 		fmt.Sprintf("nesting reaches depth %d (limit %d)", s.maxDepth, s.cfg.Limits.Nesting)))
 }
 

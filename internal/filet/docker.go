@@ -53,10 +53,7 @@ func ParseDockerfile(src []byte) []Instruction {
 
 // CheckDockerfile runs every Dockerfile rule and returns the findings.
 func CheckDockerfile(cfg *Config, path string, src []byte) []Finding {
-	rel := path
-	if r, err := filepath.Rel(cfg.root, path); err == nil {
-		rel = filepath.ToSlash(r)
-	}
+	rel := DisplayPath(path)
 
 	var out []Finding
 	add := func(rule string, line int, sev Severity, msg string) {

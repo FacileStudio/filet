@@ -31,6 +31,7 @@ type Architecture struct {
 	ForbiddenDirs    []string            `yaml:"forbiddenDirs"`
 	MaxDepth         int                 `yaml:"maxDepth"`
 	FileNamePattern  string              `yaml:"fileNamePattern"`
+	RequiredFiles    map[string][]string `yaml:"requiredFiles"`
 	ForbiddenImports map[string][]string `yaml:"forbiddenImports"`
 }
 

@@ -10,11 +10,12 @@ import (
 
 // SourceFile is one readable file plus everything the rules need to inspect it.
 type SourceFile struct {
-	Path  string
-	Rel   string
-	Ext   string
-	Src   []byte
-	Lines []string
+	Path    string
+	Rel     string
+	Display string
+	Ext     string
+	Src     []byte
+	Lines   []string
 }
 
 // Scan walks target and returns every file matching the configured extensions.
@@ -68,16 +69,13 @@ func readSource(cfg *Config, path string) (SourceFile, error) {
 	if err != nil {
 		return SourceFile{}, err
 	}
-	rel, err := filepath.Rel(cfg.root, path)
-	if err != nil {
-		rel = path
-	}
 	return SourceFile{
-		Path:  path,
-		Rel:   filepath.ToSlash(rel),
-		Ext:   filepath.Ext(path),
-		Src:   src,
-		Lines: strings.Split(strings.ReplaceAll(string(src), "\r\n", "\n"), "\n"),
+		Path:    path,
+		Rel:     RootRelative(cfg.root, path),
+		Display: DisplayPath(path),
+		Ext:     filepath.Ext(path),
+		Src:     src,
+		Lines:   strings.Split(strings.ReplaceAll(string(src), "\r\n", "\n"), "\n"),
 	}, nil
 }
 

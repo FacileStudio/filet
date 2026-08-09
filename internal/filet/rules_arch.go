@@ -16,10 +16,12 @@ func CheckArchitecture(cfg *Config, files []SourceFile) []Finding {
 	out = append(out, missingDirs(cfg)...)
 
 	seenDir := map[string]bool{}
+	var dirs []string
 	for _, f := range files {
 		dir := filepath.ToSlash(filepath.Dir(f.Rel))
 		if !seenDir[dir] {
 			seenDir[dir] = true
+			dirs = append(dirs, dir)
 			out = append(out, forbiddenDir(cfg, dir)...)
 		}
 		out = append(out, depth(cfg, f), filename(cfg, f))
@@ -27,6 +29,7 @@ func CheckArchitecture(cfg *Config, files []SourceFile) []Finding {
 			out = append(out, checkImports(a.ForbiddenImports, f)...)
 		}
 	}
+	out = append(out, requiredFiles(cfg, dirs)...)
 	return slices.DeleteFunc(out, func(f Finding) bool { return f.Rule == "" })
 }
 
@@ -37,7 +40,8 @@ func missingDirs(cfg *Config) []Finding {
 	var out []Finding
 	for _, dir := range cfg.Architecture.RequiredDirs {
 		if info, err := os.Stat(filepath.Join(cfg.root, dir)); err != nil || !info.IsDir() {
-			out = append(out, newFinding("arch.dir.missing", dir, 1, Error, "required directory is missing"))
+			out = append(out, newFinding("arch.dir.missing",
+				DisplayPath(filepath.Join(cfg.root, dir)), 1, Error, "required directory is missing"))
 		}
 	}
 	return out
@@ -63,7 +67,7 @@ func depth(cfg *Config, f SourceFile) Finding {
 	if !cfg.Enabled("arch.depth") || maxDepth <= 0 || d <= maxDepth {
 		return Finding{}
 	}
-	return newFinding("arch.depth", f.Rel, 1, Warn,
+	return newFinding("arch.depth", f.Display, 1, Warn,
 		"nested "+strconv.Itoa(d)+" directories deep (limit "+strconv.Itoa(maxDepth)+")")
 }
 
@@ -74,7 +78,7 @@ func filename(cfg *Config, f SourceFile) Finding {
 	if cfg.fileName.MatchString(filepath.Base(f.Rel)) {
 		return Finding{}
 	}
-	return newFinding("arch.filename", f.Rel, 1, Warn,
+	return newFinding("arch.filename", f.Display, 1, Warn,
 		"filename does not match "+cfg.Architecture.FileNamePattern)
 }
 
@@ -95,7 +99,7 @@ func bannedImports(prefix string, banned []string, f SourceFile) []Finding {
 		if !matchesBan(imp, banned) {
 			continue
 		}
-		out = append(out, newFinding("arch.import.forbidden", f.Rel, 1, Error,
+		out = append(out, newFinding("arch.import.forbidden", f.Display, 1, Error,
 			prefix+" must not import "+imp))
 	}
 	return out

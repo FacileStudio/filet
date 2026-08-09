@@ -35,6 +35,8 @@ architecture:
   # forbiddenDirs: [internal/utils, pkg/common]
   # maxDepth: 6           # 0 (the default) disables the depth rule
   # fileNamePattern: '^[a-z0-9_]+\.go$'
+  # requiredFiles:         # every directory matching a glob must hold these
+  #   "apps/api/modules/*": [router.go]
   # forbiddenImports:      # keep the layers honest: prefix -> imports it must never pull in
   #   internal/domain: [net/http, database/sql]
 
