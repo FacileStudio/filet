@@ -1,0 +1,15 @@
+# filet holds itself to its own defaults. No preset, no loosened thresholds —
+# only the project's directory layout is pinned here.
+
+ignore: [.git, vendor, dist, target, testdata, bin]
+extensions: [.go]
+
+architecture:
+  requiredDirs: [internal/filet]
+  forbiddenDirs: [internal/utils, internal/helpers, pkg/common]
+  maxDepth: 3
+  fileNamePattern: '^[a-z0-9_]+\.go$'
+  forbiddenImports:
+    internal/filet: [github.com/saravenpi/filet]
+
+failOn: error

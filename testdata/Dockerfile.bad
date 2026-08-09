@@ -1,0 +1,6 @@
+FROM golang:latest
+ENV DB_PASSWORD=hunter2
+COPY . .
+RUN apt-get update && apt-get install -y curl
+RUN go build -o app .
+CMD ./app

@@ -1,0 +1,205 @@
+# filet
+
+A single Go binary that checks your coding style, roasts your code, roasts your Dockerfiles,
+and runs your test suites. One dependency, `goccy/go-yaml`, so the config file can have comments.
+
+```
+filet check   [path]   style, quality and architecture rules
+filet roast   [path]   the same rules, with commentary
+filet docker  [path]   every Dockerfile it can find, roasted
+filet test    [path]   detect and run the project's test suites
+filet init    [path]   write a commented .filet.yml (-preset relaxed|epitech)
+filet rules            list every rule id
+```
+
+`droast` is a symlink to `filet` and behaves exactly like `filet docker`.
+
+## Install
+
+```sh
+mise run install          # go install + the droast symlink
+# or
+go install github.com/saravenpi/filet@latest
+ln -sf "$(go env GOPATH)/bin/filet" "$(go env GOPATH)/bin/droast"
+```
+
+## Configuration
+
+`filet init` writes a commented starter file. `filet` then walks up from the target directory
+looking for `.filet.yml`, `.filet.yaml`, `filet.yml` or `filet.yaml`. Everything it finds is merged
+over the defaults, and the directory holding the config becomes the project root.
+
+```yaml
+preset: epitech           # optional starting point, see below
+
+ignore: [.git, node_modules, vendor, dist, testdata]
+extensions: [.go, .ts, .svelte]
+
+limits:
+  fileLines: 250
+  funcsPerFile: 8         # 0 disables the budget; _test.go files are exempt
+  funcLines: 30           # Go only, blank and comment lines excluded
+  funcStatements: 25      # Go only
+  lineLength: 120
+  params: 5
+  returns: 3
+  nesting: 4
+  complexity: 10          # cognitive, not cyclomatic
+  structFields: 15
+  interfaceMethods: 5
+
+architecture:
+  requiredDirs: [internal, cmd]
+  forbiddenDirs: [internal/utils, pkg/common]
+  maxDepth: 4
+  fileNamePattern: '^[a-z0-9_]+\.go$'
+  forbiddenImports:
+    internal/domain: [net/http, database/sql]
+
+style:
+  banInlineComments: true
+  banTODO: true
+  requireDocComments: true
+  banGlobalMutable: true
+  banInit: true
+  banTrailingSpace: true
+
+disabled: [gen.line.long]
+failOn: error
+```
+
+### Presets
+
+`preset:` seeds the limits before your own keys are applied, so anything you write explicitly still
+wins. Three exist:
+
+| Preset | funcsPerFile | funcLines | funcStatements | fileLines | nesting | lineLength | complexity |
+|---|---|---|---|---|---|---|---|
+| `default` | 8 | 30 | 25 | 250 | 4 | 120 | 10 |
+| `relaxed` | off | 60 | 40 | 400 | 5 | 120 | 15 |
+| `epitech` | 5 | 20 | 15 | 400 | 3 | 80 | 10 |
+
+`default` also turns on `banInlineComments`, `banTODO`, `banInit` and `banGlobalMutable`;
+`relaxed` turns all four off.
+
+`epitech` is the real norm's numbers, and they were written for C: no closures, no `if err != nil`,
+no method receivers. On Go or TypeScript they fire constantly on code that is fine. Excellent as a
+deliberate team discipline, wrong as a silent default — hence the opt-in.
+
+`forbiddenImports` maps a path prefix to the imports that prefix must never pull in. It is the
+cheapest way to keep a layered architecture honest: the domain layer stops importing HTTP, the
+frontend stops importing the database driver.
+
+## Checking code
+
+Generic rules run on every configured extension. Go files additionally go through `go/ast`, so
+function length, parameter count, cyclomatic complexity, naked returns, discarded return values,
+oversized interfaces and package-level mutable state are measured rather than guessed.
+
+```sh
+filet check .
+filet roast internal/          # same findings, plus commentary
+filet check . -format json     # for CI
+filet check . -fail warn       # exit 1 on warnings too
+```
+
+Exit codes: `0` clean, `1` findings at or above `failOn`, `2` bad usage or unreadable input.
+`-fail never` always exits 0; an unknown value is rejected rather than silently treated as `error`.
+`-quiet` drops the per-finding lines but keeps the summary, the grade and the exit code.
+
+`testdata` is ignored by default, matching the Go toolchain: it holds fixtures that are often
+invalid on purpose, and a parse failure there should not fail your build.
+
+### Where the numbers come from
+
+The defaults sit at or below the strict end of what the established tools ship, deliberately. The
+`relaxed` preset is those published defaults, if you want them.
+
+| Limit | default | `relaxed` | Prior art |
+|---|---|---|---|
+| `funcLines` | 30 | 60 | golangci-lint `funlen` 60, ESLint `max-lines-per-function` 50 |
+| `funcStatements` | 25 | 40 | golangci-lint `funlen` 40 statements |
+| `complexity` | 10 | 15 | SonarQube cognitive threshold 15; `gocognit` defaults to 30 and recommends 10–20 |
+| `nesting` | 4 | 5 | ESLint `max-depth` and Sonar S134 allow 4 blocks *inside* a function; filet counts the function's own block too, so `relaxed`'s 5 is their budget and the default is one tighter |
+| `params` | 5 | 5 | between ESLint `max-params` 3 and Sonar S107 7 |
+| `fileLines` | 250 | 400 | ESLint `max-lines` 300 |
+| `lineLength` | 120 | 120 | golangci-lint `lll` default |
+| `funcsPerFile` | 8 | off | no prior art — an organisational preference, so `relaxed` turns it off |
+
+A default that fires on healthy code teaches people to add `disabled:` and stop reading, so anything
+noisy has to earn its place. `go.global.mutable` only survived on-by-default because the rule got
+smarter: an unexported package-level `var` that is never written anywhere in its own file is a
+lookup table, not shared state, and is skipped. Exported vars are always flagged — any package can
+write those. Vars built through a `Must…`/`Once…` constructor are skipped too.
+
+### Cognitive, not cyclomatic
+
+`complexity` measures **cognitive** complexity, the SonarSource metric, not McCabe's cyclomatic
+number. Two differences matter:
+
+- **A `switch` costs one point, not one per `case`.** A twelve-case type switch is one dispatch, not
+  twelve things to hold in your head. Counting per case is why cyclomatic tools scream at every
+  dispatcher and end up muted.
+- **Nesting is penalised.** An `if` at the top of a function costs 1; the same `if` three levels deep
+  costs 4. Cyclomatic complexity scores them identically, which is the wrong answer — depth is what
+  actually makes code hard to read.
+
+Also counted: `else`/`else if` (+1 each, no nesting penalty), labelled `break`/`continue`/`goto`,
+direct recursion, and each *run* of the same boolean operator — `a && b && c` is one point,
+`a && b || c` is two.
+
+`funcLines` excludes blank and comment-only lines, matching `funlen`'s `ignore-comments` default, so
+documenting a function cannot push it over the limit.
+
+`filet` passes its own defaults with zero findings and no preset — its `.filet.yml` pins only the
+project's directory layout. Getting there meant splitting 9 files into 22 and rewriting six
+dispatchers, not moving a single threshold. `preset: relaxed` exists as an honest escape hatch for
+projects that want the published tool defaults instead: name the regime you are in, do not silently
+erode the default one threshold at a time.
+
+### Function budget
+
+Counting is exact on Go (`go/ast`, methods included, `_test.go` files exempt) and pattern-based on
+`.ts .tsx .js .jsx .svelte .rs .py .rb .java .sh` — arrow functions assigned to a binding count,
+anonymous callbacks do not. `funcLines` is Go-only; the other languages get `fileLines` and nesting.
+
+Package-level vars initialised through a `Must…` or `Once…` constructor (`regexp.MustCompile`,
+`template.Must`, `sync.OnceValue`) are treated as immutable singletons and skipped.
+
+## Roasting Dockerfiles
+
+```sh
+droast .
+filet docker ./deploy/Dockerfile.api
+```
+
+It reads `FROM` pins, root users, apt hygiene, layer count, cache-busting `COPY . .`, shell-form
+`CMD`, secrets baked into `ENV`/`ARG`, missing `.dockerignore`, missing `HEALTHCHECK`, and
+single-stage builds on a toolchain base image.
+
+## Running tests
+
+`filet test` detects what the project actually uses and runs it, streaming output as it goes:
+
+| Detected | Command |
+|---|---|
+| `go.mod` | `go test ./...` |
+| `Cargo.toml` | `cargo test` |
+| `bun.lock` / `bun.lockb` | `bun test` or `bun run test` |
+| `pnpm-lock.yaml` | `pnpm test` |
+| `yarn.lock` | `yarn test` |
+| `package.json` | `npm test` |
+| `deno.json` | `deno test -A` |
+| `pyproject.toml`, `pytest.ini`, `tox.ini` | `pytest -q` |
+
+Every suite it finds runs, and the summary at the end reports pass/fail and duration per suite.
+Extra arguments are forwarded to the underlying runner:
+
+```sh
+filet test -- -run TestParse -v
+filet test -format json
+```
+
+## Rules
+
+`filet rules` prints the full list. Disable any of them by id in `.filet.yml`.
