@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/saravenpi/filet/internal/filet"
+	"github.com/FacileStudio/filet/internal/filet"
 )
 
 type commonFlags struct {

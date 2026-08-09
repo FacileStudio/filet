@@ -7,11 +7,10 @@ import (
 )
 
 func (g *goFile) genDecl(d *ast.GenDecl) {
-	documented := d.Doc != nil
 	for _, spec := range d.Specs {
 		switch s := spec.(type) {
 		case *ast.TypeSpec:
-			g.typeSpec(s, documented)
+			g.typeSpec(s, d.Doc)
 		case *ast.ValueSpec:
 			if d.Tok == token.VAR && g.cfg.Style.BanGlobalMutable && !g.isTest && !mustInitialised(s) {
 				g.flagGlobals(s, writtenIdents(g.file))
@@ -20,7 +19,7 @@ func (g *goFile) genDecl(d *ast.GenDecl) {
 	}
 }
 
-func (g *goFile) typeSpec(s *ast.TypeSpec, documented bool) {
+func (g *goFile) typeSpec(s *ast.TypeSpec, groupDoc *ast.CommentGroup) {
 	lim := g.cfg.Limits
 	switch t := s.Type.(type) {
 	case *ast.StructType:
@@ -34,9 +33,11 @@ func (g *goFile) typeSpec(s *ast.TypeSpec, documented bool) {
 				fmt.Sprintf("interface %s has %d methods (limit %d)", s.Name.Name, n, lim.InterfaceMethods))
 		}
 	}
-	if s.Name.IsExported() && g.cfg.Style.RequireDocComments && !documented && s.Doc == nil && !g.isTest {
-		g.add("go.doc.missing", s.Pos(), Info, "exported type "+s.Name.Name+" has no doc comment")
+	doc := s.Doc
+	if doc == nil {
+		doc = groupDoc
 	}
+	g.checkDoc(docTarget{doc: doc, name: s.Name.Name, kind: "type", pos: s.Pos()})
 }
 
 func (g *goFile) flagGlobals(s *ast.ValueSpec, written map[string]bool) {

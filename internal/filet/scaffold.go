@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const template = `# filet configuration — https://github.com/saravenpi/filet
+const template = `# filet configuration — https://github.com/FacileStudio/filet
 # Every value below is the default; delete what you do not want to pin.
 # Run "filet rules" for the full list of rule ids.
 

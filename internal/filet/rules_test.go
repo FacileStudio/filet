@@ -142,3 +142,57 @@ func TestGeneratedFilesAreSkipped(t *testing.T) {
 		t.Fatal("a file with no banner must still be checked")
 	}
 }
+
+func TestToolchainDirectivesAreCodeNotCommentary(t *testing.T) {
+	cfg := DefaultConfig()
+	f := source(t, "dir.go", `package dir
+
+//go:embed all:assets
+var assets embed.FS
+
+// Handler runs the request.
+func Handler() error {
+	//nolint:errcheck // the writer cannot fail here
+	defer cleanup()
+	x := compute() //nolint:gosec
+	return x
+}
+`)
+	got := CheckGo(cfg, f)
+	if n := countRule(got, "go.comment.inbody"); n != 0 {
+		t.Fatalf("a directive must never be reported as a removable comment, got %d in %v", n, ruleIDs(got))
+	}
+	if n := countRule(CheckGeneric(cfg, f), "gen.comment.inline"); n != 0 {
+		t.Fatal("a trailing directive is not an inline comment")
+	}
+}
+
+func TestDocCommentMustOpenWithTheIdentifier(t *testing.T) {
+	cfg := DefaultConfig()
+	f := source(t, "doc.go", `package doc
+
+// Returns the sum of a and b.
+func Add(a, b int) int { return a + b }
+
+// Sub subtracts b from a.
+func Sub(a, b int) int { return a - b }
+
+// Deprecated: use Sub.
+func Minus(a, b int) int { return a - b }
+
+//go:generate stringer -type=Kind
+func Generate() {}
+`)
+	got := CheckGo(cfg, f)
+	if n := countRule(got, "go.doc.form"); n != 1 {
+		t.Fatalf("only Add is malformed, got %d go.doc.form in %v", n, ruleIDs(got))
+	}
+	if n := countRule(got, "go.doc.missing"); n != 1 {
+		t.Fatalf("a directive-only group documents nothing, so Generate is undocumented: got %d", n)
+	}
+	for _, x := range got {
+		if x.Rule == "go.doc.form" && x.Line != 4 {
+			t.Fatalf("expected the form finding on Add (line 4), got %d", x.Line)
+		}
+	}
+}

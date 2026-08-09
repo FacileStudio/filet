@@ -2,7 +2,6 @@ package filet
 
 import (
 	"go/ast"
-	"strings"
 )
 
 func (g *goFile) calls() {
@@ -44,7 +43,7 @@ func (g *goFile) inBodyComments() {
 	}
 	bodies := funcBodies(g.file)
 	for _, group := range g.file.Comments {
-		if strings.HasPrefix(group.List[0].Text, "//go:") {
+		if carriesDirective(group) {
 			continue
 		}
 		if insideAny(group, bodies) {
@@ -61,6 +60,17 @@ func funcBodies(file *ast.File) []*ast.BlockStmt {
 		}
 	}
 	return out
+}
+
+// carriesDirective reports whether any line of the group speaks to a tool. The
+// whole group is then untouchable, since deleting it would delete the directive.
+func carriesDirective(group *ast.CommentGroup) bool {
+	for _, c := range group.List {
+		if IsDirective(c.Text) {
+			return true
+		}
+	}
+	return false
 }
 
 func insideAny(group *ast.CommentGroup, bodies []*ast.BlockStmt) bool {

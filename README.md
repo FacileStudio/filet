@@ -1,6 +1,6 @@
 # filet
 
-[![ci](https://github.com/saravenpi/filet/actions/workflows/ci.yml/badge.svg)](https://github.com/saravenpi/filet/actions/workflows/ci.yml)
+[![ci](https://github.com/FacileStudio/filet/actions/workflows/ci.yml/badge.svg)](https://github.com/FacileStudio/filet/actions/workflows/ci.yml)
 
 A single Go binary that checks your coding style, roasts your code, roasts your Dockerfiles,
 and runs your test suites. One dependency, `goccy/go-yaml`, so the config file can have comments.
@@ -21,7 +21,7 @@ filet rules            list every rule id
 ```sh
 mise run install          # go install + the droast symlink
 # or
-go install github.com/saravenpi/filet@latest
+go install github.com/FacileStudio/filet@latest
 ln -sf "$(go env GOPATH)/bin/filet" "$(go env GOPATH)/bin/droast"
 ```
 

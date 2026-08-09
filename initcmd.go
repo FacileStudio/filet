@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/saravenpi/filet/internal/filet"
+	"github.com/FacileStudio/filet/internal/filet"
 )
 
 func initConfig(args []string) int {

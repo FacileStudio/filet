@@ -10,6 +10,6 @@ architecture:
   maxDepth: 3
   fileNamePattern: '^[a-z0-9_]+\.go$'
   forbiddenImports:
-    internal/filet: [github.com/saravenpi/filet]
+    internal/filet: [github.com/FacileStudio/filet]
 
 failOn: error

@@ -4,12 +4,24 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"unicode/utf8"
 )
 
 var (
-	commentedCode = regexp.MustCompile(`^\s*(//|#)\s*[\w\.\)\]]+\s*[({;=]`)
-	braceless     = map[string]bool{".py": true, ".rb": true, ".sh": true}
+	// commentedCode looks for a commented-out *statement*. Keywords that also
+	// open an English sentence — for, if, class, case — have to be backed by code
+	// punctuation before they count. A single space may follow the marker: a tab
+	// or a wider indent means a godoc or markdown code block, which is
+	// documentation and must survive.
+	commentedCode = regexp.MustCompile(`^\s*(//|#) ?(` +
+		`(func|def|const|let|var|import|export|package)(\s|$)` +
+		`|(if|for|while|switch|case|class|else|elif)(\s|$).*[(){};=]` +
+		`|return\s+\S+\s*$` +
+		`|(break|continue|fallthrough|pass)\s*;?\s*$` +
+		`|[\w.]+\s*[-+*/|&^]?:?=[^=]` +
+		`|[\w.]+\([^;]*\)\s*[;{]?\s*$` +
+		`|[});]\s*$` +
+		`)`)
+	braceless = map[string]bool{".py": true, ".rb": true, ".sh": true}
 
 	funcDeclRe = map[string]*regexp.Regexp{
 		".ts":     jsFuncRe,
@@ -115,30 +127,16 @@ func (s *lineScan) nesting() {
 		fmt.Sprintf("nesting reaches depth %d (limit %d)", s.maxDepth, s.cfg.Limits.Nesting)))
 }
 
+func inlineComment(cfg *Config, f SourceFile, line string) bool {
+	if !cfg.Style.BanInlineComments || !cfg.Enabled("gen.comment.inline") {
+		return false
+	}
+	return trailingComment(f.Ext, line) && !IsDirective(commentText(f.Ext, line))
+}
+
 func leftoverMarker(cfg *Config, f SourceFile, line string) string {
 	if !cfg.Style.BanTODO || !cfg.Enabled("gen.todo") {
 		return ""
 	}
 	return strings.ToUpper(todoMarker(commentText(f.Ext, line)))
-}
-
-func checkLine(cfg *Config, f SourceFile, n int, raw, line string) []Finding {
-	var out []Finding
-	if w := utf8.RuneCountInString(raw); w > cfg.Limits.LineLength && cfg.Enabled("gen.line.long") {
-		out = append(out, newFinding("gen.line.long", f.Rel, n, Info,
-			fmt.Sprintf("line is %d characters (limit %d)", w, cfg.Limits.LineLength)))
-	}
-	if cfg.Style.BanTrailingSpace && cfg.Enabled("gen.trailing.space") && raw != strings.TrimRight(raw, " \t") {
-		out = append(out, newFinding("gen.trailing.space", f.Rel, n, Info, "trailing whitespace"))
-	}
-	if m := leftoverMarker(cfg, f, line); m != "" {
-		out = append(out, newFinding("gen.todo", f.Rel, n, Warn, "leftover "+m+" marker"))
-	}
-	if cfg.Style.BanInlineComments && cfg.Enabled("gen.comment.inline") && trailingComment(f.Ext, line) {
-		out = append(out, newFinding("gen.comment.inline", f.Rel, n, Info, "inline comment trailing code"))
-	}
-	if cfg.Enabled("gen.commented.code") && commentedCode.MatchString(raw) {
-		out = append(out, newFinding("gen.commented.code", f.Rel, n, Info, "commented-out code"))
-	}
-	return out
 }

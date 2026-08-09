@@ -97,9 +97,7 @@ func (g *goFile) funcStyle(d *ast.FuncDecl) {
 	if d.Name.Name == "init" && g.cfg.Style.BanInit {
 		g.add("go.init", d.Pos(), Warn, "init() runs magic before main; prefer an explicit constructor")
 	}
-	if d.Name.IsExported() && g.cfg.Style.RequireDocComments && d.Doc == nil && !g.isTest {
-		g.add("go.doc.missing", d.Pos(), Info, "exported func "+d.Name.Name+" has no doc comment")
-	}
+	g.checkDoc(docTarget{doc: d.Doc, name: d.Name.Name, kind: "func", pos: d.Pos()})
 }
 
 func (g *goFile) function(d *ast.FuncDecl) {

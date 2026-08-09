@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/saravenpi/filet/internal/filet"
+	"github.com/FacileStudio/filet/internal/filet"
 )
 
 const version = "0.1.0"

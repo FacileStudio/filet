@@ -160,3 +160,36 @@ func TestTodoNeedsMarkerFormNotProse(t *testing.T) {
 		}
 	}
 }
+
+func TestCommentedCodeIsAStatementNotProse(t *testing.T) {
+	cfg := DefaultConfig()
+	flagged := func(line string) bool {
+		f := source(t, "c.go", "package c\n\n"+line+"\nvar x = 1\n")
+		return countRule(CheckGeneric(cfg, f), "gen.commented.code") > 0
+	}
+
+	for _, code := range []string{
+		"// return nil", "// x := compute()", "// doThing()", "// }",
+		"// total += item.price;", "// let total = 0;", "// break",
+	} {
+		if !flagged(code) {
+			t.Errorf("expected commented-out code: %q", code)
+		}
+	}
+
+	for _, keep := range []string{
+		"//\tapiref.Mount(router, apiref.Config{",
+		"//\t\tTitle: \"Sablier API\",",
+		"// style; failing at startup is the only safe reading of it.",
+		"// Handler() does the thing before the request lands",
+		"// Loop through all items",
+		"// class is recorded.",
+		"// for the whole run, so a pool capped at one deadlocks against itself.",
+		"// if the request is a POST, return 405 instead",
+		"// package-level concurrency instead of being forced through -p 1",
+	} {
+		if flagged(keep) {
+			t.Errorf("prose or a godoc code block must survive: %q", keep)
+		}
+	}
+}

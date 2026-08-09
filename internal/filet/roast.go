@@ -101,6 +101,10 @@ var punchlines = map[string][]string{
 		"Exported and undocumented: a gift with no instructions.",
 		"Future readers will guess. They will guess wrong.",
 	},
+	"go.doc.form": {
+		"godoc puts the name first so the index reads like a sentence. Yours does not.",
+		"\"Returns the thing\" is not searchable. The identifier name is.",
+	},
 	"go.global.mutable": {
 		"Package-level mutable state: the race condition's favourite hotel.",
 		"Global state is just a data race with a longer fuse.",
