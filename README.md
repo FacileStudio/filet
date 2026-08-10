@@ -341,8 +341,10 @@ never opens a socket — the action does the posting, so the linter stays runnab
     antenne-secret: ${{ secrets.ANTENNE_FILET_SECRET }}
 ```
 
-Antenne records every run and only delivers a failure on the default branch — a green run says
-nothing and a pull request failure is already on the author's diff. **Configure the provider's
+Antenne delivers a failure on the default branch and stays quiet otherwise — a green run says
+nothing and a pull request failure is already on the author's diff. A quiet run answers 200 and
+leaves an application log line, but no event, so do not expect green runs under Antenne's events
+API. **Configure the provider's
 secret when you create it:** an Antenne webhook provider with an empty secret accepts
 unauthenticated calls on that path, which means anyone can post a fake build failure, or a fake
 success.
