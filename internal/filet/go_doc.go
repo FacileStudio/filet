@@ -11,6 +11,11 @@ type docTarget struct {
 	name string
 	kind string
 	pos  token.Pos
+
+	// shared marks documentation that covers several declarations at once — the
+	// one comment above a `type ( ... )` block. It cannot open with the name of
+	// each of them, so go.doc.form has nothing to say about it.
+	shared bool
 }
 
 // checkDoc enforces both halves of the house convention: exported things carry a
@@ -24,7 +29,7 @@ func (g *goFile) checkDoc(t docTarget) {
 		g.add("go.doc.missing", t.pos, Info, "exported "+t.kind+" "+t.name+" has no doc comment")
 		return
 	}
-	if !g.cfg.Enabled("go.doc.form") {
+	if t.shared || !g.cfg.Enabled("go.doc.form") {
 		return
 	}
 	if !strings.HasPrefix(text, t.name) && !strings.HasPrefix(text, "Deprecated:") {
