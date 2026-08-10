@@ -38,10 +38,22 @@ func parseCommon(name string, args []string) (*commonFlags, error) {
 	return c, nil
 }
 
+// loadConfig resolves the project's rules, and says so on stderr when it found
+// none.
+//
+// The notice exists because the alternative is a silent disagreement: a config
+// that is not found — wrong filename, a directory above the repository root, a
+// binary too old to know the name — still produces a full report, and a report
+// against the defaults reads exactly like a report against the project's own
+// rules. It goes to stderr so that no output format changes.
 func loadConfig(c *commonFlags) (*filet.Config, error) {
 	cfg, path, err := filet.LoadConfig(c.target)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	if path == "" {
+		fmt.Fprintf(os.Stderr, "filet: no %s under %s, checking against the defaults\n",
+			filet.ConfigNames()[0], c.target)
 	}
 	if c.fail != "" {
 		if !filet.ValidFailOn(c.fail) {
