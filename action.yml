@@ -115,10 +115,23 @@ runs:
         ANTENNE_SECRET: ${{ inputs.antenne-secret }}
         CHECK_OUTCOME: ${{ steps.check.outcome }}
       run: |
-        set -euo pipefail
+        set -uo pipefail
         report="${RUNNER_TEMP}/filet.json"
         [ -f "$report" ] || exit 0
         payload="${RUNNER_TEMP}/filet-antenne.json"
+
+        # Reporting is a side effect, never the verdict. An Antenne that is
+        # mid-deploy, rate-limiting or simply down must not turn a green check
+        # red in a repository that has nothing to do with it — so every failure
+        # below becomes a warning annotation and the step still exits 0. This is
+        # not hypothetical: three consecutive runs on Antenne's own main went
+        # red on `curl 502` while `filet check` had exited 0 in the step above.
+        # The job's conclusion has to mean "the code is fine", or nobody trusts
+        # it. `fail-on` is the only thing allowed to fail the job.
+        warn() {
+          echo "::warning title=filet::could not report the run to Antenne: $1"
+          exit 0
+        }
 
         # A pull_request run reports the head branch: GITHUB_REF_NAME on that
         # event is the merge ref (`42/merge`), and Antenne decides whether to
@@ -143,11 +156,13 @@ runs:
            '{repository: $repository, branch: $branch, defaultBranch: $defaultBranch,
              commit: $commit, actor: $actor, status: $status, runUrl: $runUrl,
              grade: .grade, files: .files, lines: .lines, counts: .counts,
-             findings: .findings[:20]}' "$report" > "$payload"
+             findings: .findings[:20]}' "$report" > "$payload" || warn "could not build the payload"
 
-        signature="sha256=$(openssl dgst -sha256 -hmac "$ANTENNE_SECRET" -hex < "$payload" | sed 's/^.*= //')"
-        curl --silent --show-error --fail-with-body --max-time 20 \
+        signature="sha256=$(openssl dgst -sha256 -hmac "$ANTENNE_SECRET" -hex < "$payload" | sed 's/^.*= //')" \
+          || warn "could not sign the payload"
+
+        response="$(curl --silent --show-error --fail-with-body --max-time 20 \
           -X POST "$ANTENNE_URL" \
           -H 'content-type: application/json' \
           -H "x-filet-signature-256: ${signature}" \
-          --data-binary "@${payload}"
+          --data-binary "@${payload}" 2>&1)" || warn "${response}"
