@@ -197,6 +197,32 @@ func Generate() {}
 	}
 }
 
+func TestEmbeddedFilesystemsAreNotSharedMutableState(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Style.BanGlobalMutable = true
+	body := `package assets
+
+import "embed"
+
+// FS holds the migrations.
+//
+//go:embed *.sql
+var FS embed.FS
+
+var (
+	//go:embed banner.txt
+	Banner string
+
+	Registry = map[string]int{}
+)
+`
+
+	got := CheckGo(cfg, source(t, "assets.go", body))
+	if n := countRule(got, "go.global.mutable"); n != 1 {
+		t.Fatalf("want only Registry flagged, got %d findings: %v", n, ruleIDs(got))
+	}
+}
+
 func TestSentinelErrorsAreNotSharedMutableState(t *testing.T) {
 	cfg := DefaultConfig()
 	cfg.Style.BanGlobalMutable = true

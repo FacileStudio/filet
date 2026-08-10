@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strings"
 )
 
 func (g *goFile) genDecl(d *ast.GenDecl) {
@@ -13,7 +14,7 @@ func (g *goFile) genDecl(d *ast.GenDecl) {
 			g.typeSpec(s, d.Doc)
 		case *ast.ValueSpec:
 			if d.Tok == token.VAR && g.cfg.Style.BanGlobalMutable && !g.isTest &&
-				!mustInitialised(s) && !sentinelError(s) {
+				!mustInitialised(s) && !sentinelError(s) && !embedded(s, d.Doc) {
 				g.flagGlobals(s, writtenIdents(g.file))
 			}
 		}
@@ -75,6 +76,26 @@ func errorConstructor(v ast.Expr) bool {
 	}
 	return (pkg.Name == "errors" && sel.Sel.Name == "New") ||
 		(pkg.Name == "fmt" && sel.Sel.Name == "Errorf")
+}
+
+// embedded reports whether this spec is the target of a //go:embed directive.
+//
+// The directive only applies to a package-level var — embed rejects a const, and
+// there is no function form — so flagging one asks for a shape the language does
+// not offer. The value also comes from the build rather than from the program,
+// which is the opposite of the shared mutable state the rule is looking for.
+func embedded(s *ast.ValueSpec, groupDoc *ast.CommentGroup) bool {
+	for _, doc := range []*ast.CommentGroup{s.Doc, groupDoc} {
+		if doc == nil {
+			continue
+		}
+		for _, c := range doc.List {
+			if strings.HasPrefix(strings.TrimPrefix(c.Text, "//"), "go:embed") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (g *goFile) flagGlobals(s *ast.ValueSpec, written map[string]bool) {
