@@ -33,7 +33,53 @@ jobs:
         run: go test -race -count=1 ./...
 
       - name: filet holds itself to its own defaults
-        run: go run . roast . -format text
+        id: check
+        run: go run . check . -fail error -format text
+
+      - name: report to antenne
+        if: always()
+        env:
+          ANTENNE_URL: ${{ secrets.ANTENNE_FILET_SECRET != '' && 'https://antenne.facile.studio/webhook/filet' || '' }}
+          ANTENNE_SECRET: ${{ secrets.ANTENNE_FILET_SECRET }}
+        run: |
+          set -uo pipefail
+          [ -n "$ANTENNE_URL" ] || exit 0
+          report="${RUNNER_TEMP}/filet.json"
+
+          go run . check . -format json -fail never > "$report"
+          status=failure
+          [ "${{ steps.check.outcome }}" = "success" ] && status=success
+
+          warn() {
+            echo "::warning title=filet::could not report the run to Antenne: $1"
+            exit 0
+          }
+
+          branch="$(jq -r '.pull_request.head.ref // ""' "$GITHUB_EVENT_PATH")"
+          [ -n "$branch" ] || branch="$GITHUB_REF_NAME"
+          default_branch="$(jq -r '.repository.default_branch // "main"' "$GITHUB_EVENT_PATH")"
+
+          payload="${RUNNER_TEMP}/filet-antenne.json"
+          jq --arg repository "$GITHUB_REPOSITORY" \
+             --arg branch "$branch" \
+             --arg defaultBranch "$default_branch" \
+             --arg commit "$GITHUB_SHA" \
+             --arg actor "$GITHUB_ACTOR" \
+             --arg status "$status" \
+             --arg runUrl "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+             '{repository: $repository, branch: $branch, defaultBranch: $defaultBranch,
+               commit: $commit, actor: $actor, status: $status, runUrl: $runUrl,
+               grade: .grade, files: .files, lines: .lines, counts: .counts,
+               findings: .findings[:20]}' "$report" > "$payload" || warn "could not build the payload"
+
+          signature="sha256=$(openssl dgst -sha256 -hmac "$ANTENNE_SECRET" -hex < "$payload" | sed 's/^.*= //')" \
+            || warn "could not sign the payload"
+
+          response="$(curl --silent --show-error --fail-with-body --max-time 20 \
+            -X POST "$ANTENNE_URL" \
+            -H 'content-type: application/json' \
+            -H "x-filet-signature-256: ${signature}" \
+            --data-binary "@${payload}" 2>&1)" || warn "${response}"
 
   build:
     runs-on: ubuntu-latest
