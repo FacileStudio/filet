@@ -12,8 +12,16 @@ var (
 	// punctuation before they count. A single space may follow the marker: a tab
 	// or a wider indent means a godoc or markdown code block, which is
 	// documentation and must survive.
-	commentedCode = regexp.MustCompile(`^\s*(//|#) ?(` +
-		`(func|def|const|let|var|import|export)(\s|$)` +
+	//
+	// The marker is chosen per language. `#` only starts a comment in a braceless
+	// language (.py/.rb/.sh); everywhere else a leading `#` is live code — a
+	// TypeScript/Svelte private field or a Go preprocessor-less token — so only
+	// `//` is ever a comment there.
+	commentedCodeCC    = regexp.MustCompile(`^\s*// ?(` + commentedCodeBody + `)`)
+	commentedCodeSharp = regexp.MustCompile(`^\s*(//|#) ?(` + commentedCodeBody + `)`)
+
+	// commentedCodeBody is the statement-shaped body shared by both markers.
+	commentedCodeBody = `(func|def|const|let|var|import|export)(\s|$)` +
 		// A package clause is exactly two tokens. Without that anchor, any
 		// wrapped sentence in a package doc whose line happens to begin with
 		// the word "package" reads as commented-out code.
@@ -21,10 +29,14 @@ var (
 		`|(if|for|while|switch|case|class|else|elif)(\s|$).*[(){};=]` +
 		`|return\s+\S+\s*$` +
 		`|(break|continue|fallthrough|pass)\s*;?\s*$` +
-		`|[\w.]+\s*[-+*/|&^]?:?=[^=]` +
+		// An assignment is a statement only when the value runs to the end of
+		// the line (or a terminal `;`) — gofmt omits the semicolon a Go
+		// statement would otherwise carry. When prose continues after the
+		// value ("avatar_source = 'upload' quietly drops"), it is a sentence,
+		// not commented-out code.
+		`|[\w.]+\s*[-+*/|&^]?:?=\s*[^=\s;][^\s;]*\s*;?\s*$` +
 		`|[\w.]+\([^;]*\)\s*[;{]?\s*$` +
-		`|[});]\s*$` +
-		`)`)
+		`|[});]\s*$`
 	braceless = map[string]bool{".py": true, ".rb": true, ".sh": true}
 
 	funcDeclRe = map[string]*regexp.Regexp{

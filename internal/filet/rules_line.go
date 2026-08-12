@@ -7,12 +7,19 @@ import (
 )
 
 // commentedOut reports a commented-out statement. A line ending in a full stop
-// is a sentence, whatever code-shaped punctuation it happens to contain.
-func commentedOut(raw string) bool {
+// is a sentence, whatever code-shaped punctuation it happens to contain. The
+// marker depends on the language: `#` counts only where `#` actually starts a
+// comment, so a TypeScript/Svelte private field (`#anchor = -1`) is never read
+// as commented-out code.
+func commentedOut(ext, raw string) bool {
 	if strings.HasSuffix(strings.TrimRight(raw, " \t"), ".") {
 		return false
 	}
-	return commentedCode.MatchString(raw)
+	re := commentedCodeCC
+	if braceless[ext] {
+		re = commentedCodeSharp
+	}
+	return re.MatchString(raw)
 }
 
 func checkLine(cfg *Config, f SourceFile, n int, raw, line string) []Finding {
@@ -30,7 +37,7 @@ func checkLine(cfg *Config, f SourceFile, n int, raw, line string) []Finding {
 	if inlineComment(cfg, f, line) {
 		out = append(out, newFinding("gen.comment.inline", f.Display, n, Info, "inline comment trailing code"))
 	}
-	if cfg.Enabled("gen.commented.code") && commentedOut(raw) {
+	if cfg.Enabled("gen.commented.code") && commentedOut(f.Ext, raw) {
 		out = append(out, newFinding("gen.commented.code", f.Display, n, Info, "commented-out code"))
 	}
 	return out

@@ -10,16 +10,27 @@ var (
 	todoAnnot = regexp.MustCompile(`(?i)\b(TODO|FIXME|XXX|HACK)\s*[:(]`)
 )
 
+// trailingComment reports whether a line carries a comment after real code.
+// An escaped marker (a backslash immediately before it) is inside a string or
+// regex literal, not a comment: `\/\/` in a JS regex, `\#` in a shell word,
+// so the scan skips those to the first marker that actually opens a comment.
 func trailingComment(ext, stripped string) bool {
 	marker := "//"
 	if braceless[ext] {
 		marker = "#"
 	}
-	i := strings.Index(stripped, marker)
-	if i <= 0 {
-		return false
+	search := 0
+	for {
+		i := strings.Index(stripped[search:], marker)
+		if i < 0 {
+			return false
+		}
+		i += search
+		if i == 0 || stripped[i-1] != '\\' {
+			return strings.TrimSpace(stripped[:i]) != ""
+		}
+		search = i + 2
 	}
-	return strings.TrimSpace(stripped[:i]) != ""
 }
 
 // lineState carries the scanner's position across a line boundary: only raw
