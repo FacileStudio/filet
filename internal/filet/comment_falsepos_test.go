@@ -37,6 +37,23 @@ func TestAssignmentInDocProseIsNotCommentedOutCode(t *testing.T) {
 	}
 }
 
+func TestURLIsNotAnInlineComment(t *testing.T) {
+	cfg := DefaultConfig()
+	for _, c := range []struct {
+		ext, body string
+		want      int
+	}{
+		{".svelte", `Run <code class="x">https://mycelium.facile.studio</code> on a machine` + "\n", 0},
+		{".svelte", `>mycelium login https://mycelium.facile.studio</code` + "\n", 0},
+		{".md", "pair it via https://mycelium.facile.studio/login", 0},
+		{".go", "url := \"https://example.com\" // the note", 1},
+	} {
+		if n := countRule(CheckGeneric(cfg, source(t, "f"+c.ext, c.body)), "gen.comment.inline"); n != c.want {
+			t.Errorf("URL inline comment in %s: got %d, want %d", c.ext, n, c.want)
+		}
+	}
+}
+
 func TestPrivateFieldIsNotCommentedOutCode(t *testing.T) {
 	cfg := DefaultConfig()
 	for _, c := range []struct {

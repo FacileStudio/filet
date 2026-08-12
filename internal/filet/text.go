@@ -14,6 +14,12 @@ var (
 // An escaped marker (a backslash immediately before it) is inside a string or
 // regex literal, not a comment: `\/\/` in a JS regex, `\#` in a shell word,
 // so the scan skips those to the first marker that actually opens a comment.
+// trailingComment reports whether a line carries a comment after real code.
+// Two lookalikes are deliberately not comments: an escaped marker (a regex
+// like /^https?:\/\//) is a literal, and a protocol separator (https://) is
+// a URL — in a Svelte template or a help string it is text, not a trailing
+// comment, and stripping it would corrupt the very thing the page tells the
+// user to type.
 func trailingComment(ext, stripped string) bool {
 	marker := "//"
 	if braceless[ext] {
@@ -26,10 +32,18 @@ func trailingComment(ext, stripped string) bool {
 			return false
 		}
 		i += search
-		if i == 0 || stripped[i-1] != '\\' {
-			return strings.TrimSpace(stripped[:i]) != ""
+		if i == 0 {
+			return false
 		}
-		search = i + 2
+		switch stripped[i-1] {
+		case '\\':
+			search = i + 2
+			continue
+		case ':':
+			search = i + 2
+			continue
+		}
+		return strings.TrimSpace(stripped[:i]) != ""
 	}
 }
 
