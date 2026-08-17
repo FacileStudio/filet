@@ -330,7 +330,7 @@ steps:
 
 ### Reporting runs to Antenne
 
-`antenne-url` posts the run to an [Antenne](https://github.com/FacileStudio/Antenne) `filet`
+`antenne-url` posts the run to an Antenne `filet`
 webhook provider, signed with HMAC-SHA256 over the body in `x-filet-signature-256`. filet itself
 never opens a socket — the action does the posting, so the linter stays runnable offline.
 
