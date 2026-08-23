@@ -9,7 +9,7 @@ import (
 	"github.com/FacileStudio/filet/internal/filet"
 )
 
-const version = "0.3.0"
+var version = "0.3.0"
 
 const usage = `filet — style checker, code roaster and test runner
 
