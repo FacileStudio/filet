@@ -1,6 +1,8 @@
 # filet holds itself to its own defaults. No preset, no loosened thresholds —
 # only the project's directory layout is pinned here.
 
+kind: cli
+
 ignore: [.git, vendor, dist, target, testdata, bin]
 extensions: [.go]
 
