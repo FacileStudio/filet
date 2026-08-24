@@ -22,11 +22,15 @@ archives:
 checksum:
   name_template: checksums.txt
 
-brews:
+# A cask, not a formula: goreleaser soft-deprecated `brews` in v2.10 and hard-
+# deprecated it in v2.16, and casks are the supported way to ship a prebuilt
+# binary.
+homebrew_casks:
   - name: filet
     homepage: https://github.com/FacileStudio/filet
     description: Code-quality checker enforcing the Facile team guidelines
-    directory: Formula
+    binaries:
+      - filet
     repository:
       owner: FacileStudio
       name: homebrew-tap
@@ -35,10 +39,17 @@ brews:
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
-    install: |
-      bin.install "filet"
-    test: |
-      system "#{bin}/filet", "--version"
+    url:
+      verified: github.com/FacileStudio/
+    # The binaries are unsigned, and a cask download carries the quarantine
+    # attribute where a formula's did not. Without this the first run dies on
+    # "cannot be opened because the developer cannot be verified".
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/filet"]
+          end
 
 changelog:
   sort: asc
