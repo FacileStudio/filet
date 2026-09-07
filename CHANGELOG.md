@@ -9,6 +9,11 @@ Every entry below was reconstructed from git history on 2026-08-24, so they
 record what shipped rather than what was written down at the time.
 
 ## [Unreleased]
+### Added
+- go.err.nilerr rule: detects functions that handle an error but return nil in its place (the nilerr bug)
+- Corresponding unit tests in rules_test.go
+- Updated frozen rules list to include go.err.nilerr
+- Added roast punchlines for the new rule
 
 ## [0.3.0] — 2026-08-10
 

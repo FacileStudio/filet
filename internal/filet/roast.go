@@ -208,6 +208,11 @@ var punchlines = map[string][]string{
 		"Close() is not optional. The GC will not save you.",
 		"Every open handle is a promise to the OS. Keep it.",
 	},
+	"go.err.nilerr": {
+		"Handling an error then returning nil is how silent failures are born.",
+		"The if-block is there for a reason. Use it or delete it.",
+		"nil, nil compiles but does not compute.",
+	},
 }
 
 var fallback = []string{

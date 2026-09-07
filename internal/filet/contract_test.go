@@ -63,6 +63,7 @@ var frozenRules = []string{
 	"go.return.naked",
 	"go.struct.fields",
 	"go.leak.resource",
+	"go.err.nilerr",
 }
 
 func TestRuleIDsAreFrozen(t *testing.T) {

@@ -69,6 +69,7 @@ func CheckGo(cfg *Config, f SourceFile) []Finding {
 	g.decls()
 	g.inBodyComments()
 	g.calls()
+	g.nilerrCheck()
 	if info != nil {
 		g.resourceLeaks()
 	}
