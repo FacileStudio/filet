@@ -203,6 +203,11 @@ var punchlines = map[string][]string{
 	"docker.maintainer": {
 		"MAINTAINER has been deprecated longer than some of your dependencies have existed.",
 	},
+	"go.leak.resource": {
+		"An unclosed resource is a leak waiting to happen.",
+		"Close() is not optional. The GC will not save you.",
+		"Every open handle is a promise to the OS. Keep it.",
+	},
 }
 
 var fallback = []string{

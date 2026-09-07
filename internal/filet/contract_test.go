@@ -62,6 +62,7 @@ var frozenRules = []string{
 	"go.receiver.inconsistent",
 	"go.return.naked",
 	"go.struct.fields",
+	"go.leak.resource",
 }
 
 func TestRuleIDsAreFrozen(t *testing.T) {

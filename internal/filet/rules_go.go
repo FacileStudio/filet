@@ -3,8 +3,10 @@ package filet
 import (
 	"fmt"
 	"go/ast"
+	"go/importer"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"strings"
 )
 
@@ -16,6 +18,7 @@ type goFile struct {
 	isTest bool
 	line   func(token.Pos) int
 	noise  map[int]bool
+	info   *types.Info
 	add    addFn
 }
 
@@ -30,6 +33,20 @@ func CheckGo(cfg *Config, f SourceFile) []Finding {
 		return []Finding{newFinding("go.parse", f.Display, 1, Error, "cannot parse: "+err.Error())}
 	}
 
+	// Type checking for semantic rules
+	var info *types.Info
+	if cfg.Enabled("go.leak.resource") {
+		info = &types.Info{
+			Types: make(map[ast.Expr]types.TypeAndValue),
+			Defs:  make(map[*ast.Ident]types.Object),
+			Uses:  make(map[*ast.Ident]types.Object),
+		}
+		conf := &types.Config{Importer: importer.Default(), Error: func(err error) {}}
+		if _, err := conf.Check(f.Path, fset, []*ast.File{parsed}, info); err != nil {
+			info = nil
+		}
+	}
+
 	var out []Finding
 	g := &goFile{
 		cfg:    cfg,
@@ -37,6 +54,7 @@ func CheckGo(cfg *Config, f SourceFile) []Finding {
 		isTest: strings.HasSuffix(f.Rel, "_test.go"),
 		line:   func(p token.Pos) int { return fset.Position(p).Line },
 		noise:  noiseLines(f, parsed, fset),
+		info:   info,
 		add: func(rule string, pos token.Pos, sev Severity, msg string) {
 			if !cfg.Enabled(rule) {
 				return
@@ -51,6 +69,9 @@ func CheckGo(cfg *Config, f SourceFile) []Finding {
 	g.decls()
 	g.inBodyComments()
 	g.calls()
+	if info != nil {
+		g.resourceLeaks()
+	}
 	return out
 }
 

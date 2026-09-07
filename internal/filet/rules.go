@@ -33,6 +33,7 @@ var registry = []Rule{
 	{"go.global.mutable", "package-level mutable var (style.banGlobalMutable)"},
 	{"go.init", "init() function (style.banInit)"},
 	{"go.receiver.inconsistent", "same type uses different receiver names"},
+	{"go.leak.resource", "io.Closer value without a deferred Close() in the same scope"},
 	{"arch.dir.missing", "architecture.requiredDirs entry is absent"},
 	{"arch.dir.forbidden", "path matches architecture.forbiddenDirs"},
 	{"arch.file.missing", "directory matching an architecture.requiredFiles glob lacks a required file"},
