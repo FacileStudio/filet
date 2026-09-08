@@ -15,6 +15,10 @@ record what shipped rather than what was written down at the time.
 - Updated frozen rules list to include go.err.nilerr
 - Added roast punchlines for the new rule
 
+### Fixed
+- go.leak.resource: detect Close() calls inside deferred anonymous functions
+  Fixes false positives on idiomatic patterns like `defer func() { f.Close() }()`
+
 ## [0.3.0] — 2026-08-10
 
 ### Changed
