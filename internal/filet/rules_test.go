@@ -412,6 +412,37 @@ func fetchResp(id string) (*Item, error) { return nil, nil }
 	}
 }
 
+func TestResourceLeakNotFlaggedWhenDeferredAnonymousClose(t *testing.T) {
+	cfg := DefaultConfig()
+	f := source(t, "appendline.go", `package appendline
+
+import (
+	"os"
+)
+
+func appendLine(path string, line []byte) error {
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
+
+	if _, err := file.Write(append(line, '\n')); err != nil {
+		return err
+	}
+	return nil
+}
+`)
+	got := CheckGo(cfg, f)
+	if n := countRule(got, "go.leak.resource"); n != 0 {
+		t.Fatalf("expected 0 go.leak.resource findings (deferred in anonymous func), got %d in %v", n, ruleIDs(got))
+	}
+}
+
 func TestResourceLeakNotFlaggedInTestFiles(t *testing.T) {
 	cfg := DefaultConfig()
 	f := source(t, "handler_test.go", `package leak_test
