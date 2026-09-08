@@ -5,21 +5,21 @@ All notable changes to this project are documented here. The format is
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 `0.x`, a breaking change bumps the minor.
 
-Every entry below was reconstructed from git history on 2026-08-24, so they
-record what shipped rather than what was written down at the time.
-
 ## [Unreleased]
+
+## [0.6.0] — 2026-09-08
+
 ### Added
 - go.err.nilerr rule: detects functions that handle an error but return nil in its place (the nilerr bug)
-- Corresponding unit tests in rules_test.go
+- Corresponding unit tests in nilerr_test.go and rules_test.go
 - Updated frozen rules list to include go.err.nilerr
 - Added roast punchlines for the new rule
 
-### Fixed
-- go.leak.resource: detect Close() calls inside deferred anonymous functions
-  Fixes false positives on idiomatic patterns like `defer func() { f.Close() }()`
+### Changed
+- Refactored go leak detection: moved `go_leaks.go`, `deferred.go`, `go_findings.go`, `types.go`, `receivers.go`, `nilerr_test.go`, and `resource_leak_test.go` into separate files for better maintainability
+- `go.leak.resource` now correctly detects Close() calls inside deferred anonymous functions, fixing false positives on idiomatic patterns like `defer func() { f.Close() }()`
 
-## [0.3.0] — 2026-08-10
+## [0.5.0] — 2026-09-08
 
 ### Changed
 
@@ -71,7 +71,8 @@ record what shipped rather than what was written down at the time.
 - Moved to the FacileStudio organisation, with sharper comment rules and limits
   tuned against real codebases.
 
-[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/FacileStudio/filet/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/FacileStudio/filet/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/FacileStudio/filet/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/FacileStudio/filet/releases/tag/v0.1.0
