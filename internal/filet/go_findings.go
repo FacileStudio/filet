@@ -2,10 +2,15 @@ package filet
 
 import (
 	"go/ast"
+	"go/build"
 	"go/importer"
 	"go/token"
 	"go/types"
+	"os"
+	"os/exec"
+	"runtime"
 	"strings"
+	"sync"
 )
 
 func runGoChecks(cfg *Config, f SourceFile, fset *token.FileSet, parsed *ast.File) []Finding {
@@ -65,6 +70,13 @@ func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Inf
 	if !cfg.Enabled("go.leak.resource") || len(files) == 0 {
 		return nil
 	}
+	root := goRoot()
+	if root == "" {
+		return nil
+	}
+	if build.Default.GOROOT == "" {
+		build.Default.GOROOT = root
+	}
 	info := &types.Info{
 		Types: make(map[ast.Expr]types.TypeAndValue),
 		Defs:  make(map[*ast.Ident]types.Object),
@@ -76,3 +88,23 @@ func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Inf
 	}
 	return info
 }
+
+var goRootFn = sync.OnceValue(func() string {
+	g := runtime.GOROOT()
+	if g == "" {
+		g = os.Getenv("GOROOT")
+	}
+	if g == "" {
+		if out, err := exec.Command("go", "env", "GOROOT").Output(); err == nil {
+			g = strings.TrimSpace(string(out))
+		}
+	}
+	return g
+})
+
+// goRoot returns a GOROOT the standard-library importer can use. runtime.GOROOT
+// is the usual source, but -trimpath ships it as "": the fallbacks are the
+// GOROOT environment variable, then `go env GOROOT`. An empty result means the
+// stdlib cannot be resolved and the leak rule degrades to its visible
+// "could not run" finding instead of silently missing leaks.
+func goRoot() string { return goRootFn() }
