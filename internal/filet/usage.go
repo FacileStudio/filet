@@ -88,7 +88,7 @@ func usageSections() []usageSection {
 			usageRow{cmd: "droast", detail: "", desc: "Alias for \"filet docker\"."},
 		}},
 		usageSection{title: "Flags", rows: []usageRow{
-			usageRow{cmd: "-format", detail: "auto|text|line|json|sarif|github", desc: "Output format. Default: auto."},
+			usageRow{cmd: "-format", detail: "auto|text|lipgloss|line|json|sarif|github", desc: "Output format. Default: auto."},
 			usageRow{cmd: "-fail", detail: "info|warn|error|never", desc: "Severity that makes the command fail."},
 			usageRow{cmd: "-quiet", detail: "", desc: "Print the summary only."},
 		}},

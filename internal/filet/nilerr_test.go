@@ -156,3 +156,41 @@ func fetchResp(id string) (*Item, error) { return nil, nil }
 		t.Fatalf("expected 0 go.err.nilerr findings, got %d in %v", n, ruleIDs(got))
 	}
 }
+
+func TestNilerrNotFlaggedForValueGuard(t *testing.T) {
+	cfg := DefaultConfig()
+	f := source(t, "value.go", `package value
+
+func Get(id string) (*Item, error) {
+	item, err := fetch(id)
+	if item != nil {
+		return item, nil
+	}
+	return nil, err
+}
+
+func fetch(id string) (*Item, error) { return nil, nil }
+`)
+	got := CheckGo(cfg, f)
+	if n := countRule(got, "go.err.nilerr"); n != 0 {
+		t.Fatalf("expected 0 go.err.nilerr findings when the guard is a value, not the error, got %d in %v", n, ruleIDs(got))
+	}
+}
+
+func TestNilerrNotFlaggedForSingleValueGuard(t *testing.T) {
+	cfg := DefaultConfig()
+	f := source(t, "single.go", `package single
+
+func Get(id string) (*Item, error) {
+	item := cache.Get(id)
+	if item != nil {
+		return item, nil
+	}
+	return nil, nil
+}
+`)
+	got := CheckGo(cfg, f)
+	if n := countRule(got, "go.err.nilerr"); n != 0 {
+		t.Fatalf("expected 0 go.err.nilerr findings for a single-value guard, got %d in %v", n, ruleIDs(got))
+	}
+}

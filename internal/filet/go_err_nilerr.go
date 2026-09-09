@@ -28,13 +28,18 @@ func (g *goFile) checkNilerr(fn *ast.FuncDecl) {
 	if errIdx < 0 {
 		return
 	}
+	errs := g.functionErrorVars(fn.Body)
+	if len(errs) == 0 {
+		return
+	}
 
 	ast.Inspect(fn.Body, func(n ast.Node) bool {
 		ifStmt, ok := n.(*ast.IfStmt)
 		if !ok {
 			return true
 		}
-		if !isNilComparison(ifStmt.Cond) {
+		compared := comparedIdent(ifStmt.Cond)
+		if compared == nil || !errs[compared.Name] {
 			return true
 		}
 		g.checkBlockForNilerr(ifStmt.Body, errIdx)
@@ -56,19 +61,75 @@ func errorReturnIndex(results *ast.FieldList) int {
 	return -1
 }
 
-// isNilComparison reports whether e is a comparison of an identifier against
-// nil: `x != nil` or `nil != x`.
-func isNilComparison(e ast.Expr) bool {
-	b, ok := e.(*ast.BinaryExpr)
-	if !ok || b.Op != token.NEQ {
-		return false
-	}
-	return (isIdent(b.X) && isNilLiteral(b.Y)) || (isNilLiteral(b.X) && isIdent(b.Y))
+// functionErrorVars collects the names of the variables in body that are bound
+// as the error slot of an error-returning call. A comparison against one of
+// these is an error guard; a comparison against any other name is not, and the
+// nilerr rule must not fire on it — `if item != nil` guards a value, not an
+// error, and returning nil there is a normal "not found", not a swallowed
+// failure.
+func (g *goFile) functionErrorVars(body *ast.BlockStmt) map[string]bool {
+	errs := make(map[string]bool)
+	ast.Inspect(body, func(n ast.Node) bool {
+		as, ok := n.(*ast.AssignStmt)
+		if !ok || len(as.Rhs) != 1 {
+			return true
+		}
+		call, ok := as.Rhs[0].(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		idx := g.errorSlotOf(call, as.Lhs)
+		if idx < 0 || idx >= len(as.Lhs) {
+			return true
+		}
+		if id, ok := as.Lhs[idx].(*ast.Ident); ok {
+			errs[id.Name] = true
+		}
+		return true
+	})
+	return errs
 }
 
-func isIdent(e ast.Expr) bool {
-	_, ok := e.(*ast.Ident)
-	return ok
+// errorSlotOf returns the index, within lhs, of the target bound from the
+// callee's error slot. It resolves the callee when it is declared in this file;
+// otherwise it falls back to the error-is-last convention, where the trailing
+// target of a multi-value assignment is the only shape that reads as an error.
+func (g *goFile) errorSlotOf(call *ast.CallExpr, lhs []ast.Expr) int {
+	name := ""
+	switch t := call.Fun.(type) {
+	case *ast.Ident:
+		name = t.Name
+	case *ast.SelectorExpr:
+		name = t.Sel.Name
+	}
+	if name != "" {
+		for _, decl := range g.file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if ok && fn.Name.Name == name {
+				return errorReturnIndex(fn.Type.Results)
+			}
+		}
+		if len(lhs) >= 2 {
+			return len(lhs) - 1
+		}
+	}
+	return -1
+}
+
+// comparedIdent returns the identifier compared against nil — `err != nil` or
+// `nil != err` — or nil when e is not a null-equality comparison.
+func comparedIdent(e ast.Expr) *ast.Ident {
+	b, ok := e.(*ast.BinaryExpr)
+	if !ok || b.Op != token.NEQ {
+		return nil
+	}
+	if id, ok := b.X.(*ast.Ident); ok && isNilLiteral(b.Y) {
+		return id
+	}
+	if id, ok := b.Y.(*ast.Ident); ok && isNilLiteral(b.X) {
+		return id
+	}
+	return nil
 }
 
 func isNilLiteral(e ast.Expr) bool {

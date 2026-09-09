@@ -1,8 +1,8 @@
 package filet
 
 // rustRawClose reports whether line[i] closes an already-open Rust raw string
-// with rustHashes trailing `#`s. If so, it returns the index after the closing
-// sequence; otherwise it returns i, false.
+// with rustHashes trailing `#`s. If so, it returns the index of the last `#` of
+// the closing sequence; otherwise it returns i, false.
 func rustRawClose(line string, i int, rustHashes int) (int, bool) {
 	if line[i] != '"' {
 		return i, false

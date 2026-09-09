@@ -3,10 +3,6 @@ package filet
 import "strings"
 
 // trailingComment reports whether a line carries a comment after real code.
-// An escaped marker (a backslash immediately before it) is inside a string or
-// regex literal, not a comment: `\/\/` in a JS regex, `\#` in a shell word,
-// so the scan skips those to the first marker that actually opens a comment.
-// trailingComment reports whether a line carries a comment after real code.
 // Two lookalikes are deliberately not comments: an escaped marker (a regex
 // like /^https?:\/\//) is a literal, and a protocol separator (https://) is
 // a URL — in a Svelte template or a help string it is text, not a trailing
@@ -55,51 +51,23 @@ type lineState struct {
 func stripLine(line string, st lineState) (string, lineState) {
 	var b strings.Builder
 	b.Grow(len(line))
-	quote := byte(0)
+	cs := charState{rustRaw: st.rustRaw, rustHashes: st.rustHashes, block: st.block}
 	if st.raw {
-		quote = '`'
+		cs.quote = '`'
 	}
-	escaped := false
-	rustRaw := st.rustRaw
-	rustHashes := st.rustHashes
-
-	for i := 0; i < len(line); i++ {
-		c := line[i]
-		switch {
-		case rustRaw:
-			if end, ok := rustRawClose(line, i, rustHashes); ok {
-				rustRaw = false
-				i = end
-				continue
-			}
-		case quote != 0:
-			quote, escaped = advance(c, quote, escaped)
-		case st.block:
-			if c == '*' && peek(line, i) == '/' {
-				st.block = false
-				i++
-			}
-		case c == '/' && peek(line, i) == '/':
-			b.WriteString(line[i:])
-			return b.String(), lineState{raw: quote == '`', block: st.block, rustRaw: rustRaw, rustHashes: rustHashes}
-		case c == '/' && peek(line, i) == '*':
-			st.block = true
-			i++
-		case (c == 'r' || c == 'R'):
-			if j, h, ok := rustRawOpen(line, i); ok {
-				rustRaw = true
-				rustHashes = h
-				i = j
-				continue
-			}
-			b.WriteByte(c)
-		case c == '\'' || c == '"' || c == '`':
-			quote = c
-		default:
-			b.WriteByte(c)
+	i := 0
+	for i < len(line) {
+		step := cs.step(line, i)
+		b.WriteString(step.write)
+		if step.done {
+			break
+		}
+		i++
+		if step.next > 0 {
+			i = step.next
 		}
 	}
-	return b.String(), lineState{raw: quote == '`', block: st.block, rustRaw: rustRaw, rustHashes: rustHashes}
+	return b.String(), lineState{raw: cs.quote == '`', block: cs.block, rustRaw: cs.rustRaw, rustHashes: cs.rustHashes}
 }
 
 func peek(line string, i int) byte {
