@@ -18,6 +18,9 @@ func LoadConfig(dir string) (*Config, string, error) {
 
 	path, raw := findConfig(abs)
 	cfg := DefaultConfig()
+	if err := applyGlobalLSP(cfg); err != nil {
+		return nil, "", err
+	}
 	if path == "" {
 		cfg.root = abs
 		return cfg, "", cfg.compile()
@@ -91,4 +94,51 @@ func applyPreset(cfg *Config, raw []byte) error {
 	}
 	apply(cfg)
 	return nil
+}
+
+// applyGlobalLSP overlays the user's server recipes from a global config file
+// ($XDG_CONFIG_HOME/filet/filet.yml, else ~/.config/filet/filet.yml) onto the
+// defaults. The layer touches only lsp.servers: gate switches like enabled,
+// fail and failOn stay per-repository, so a user pointing filet at their own
+// servers cannot silently change anyone else's verdict. A malformed global file
+// is ignored rather than failing the run.
+func applyGlobalLSP(cfg *Config) error {
+	raw := globalServerRaw()
+	if raw == nil {
+		return nil
+	}
+	var layer struct {
+		LSP struct {
+			Servers map[string]Server `yaml:"servers"`
+		} `yaml:"lsp"`
+	}
+	if err := yaml.Unmarshal(raw, &layer); err != nil {
+		return nil
+	}
+	for lang, srv := range layer.LSP.Servers {
+		cfg.LSP.Servers[lang] = srv
+	}
+	return nil
+}
+
+// globalServerRaw returns the raw bytes of a global lsp.servers layer, if any.
+func globalServerRaw() []byte {
+	for _, dir := range globalConfigDirs() {
+		_, raw := configIn(dir)
+		if raw != nil {
+			return raw
+		}
+	}
+	return nil
+}
+
+func globalConfigDirs() []string {
+	var dirs []string
+	if dir := os.Getenv("XDG_CONFIG_HOME"); filepath.IsAbs(dir) {
+		dirs = append(dirs, filepath.Join(dir, "filet"))
+	}
+	if home := os.Getenv("HOME"); home != "" {
+		dirs = append(dirs, filepath.Join(home, ".config", "filet"))
+	}
+	return dirs
 }

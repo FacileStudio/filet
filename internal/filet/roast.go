@@ -2,7 +2,7 @@ package filet
 
 import "hash/fnv"
 
-var punchlines = map[string][]string{
+var punchlinesCore = map[string][]string{
 	"gen.file.long": {
 		"This file has more lines than the codebase has tests.",
 		"At this length it is not a module, it is a memoir.",
@@ -215,17 +215,11 @@ var punchlines = map[string][]string{
 	"docker.maintainer": {
 		"MAINTAINER has been deprecated longer than some of your dependencies have existed.",
 	},
-	"go.leak.resource": {
-		"An unclosed resource is a leak waiting to happen.",
-		"Close() is not optional. The GC will not save you.",
-		"Every open handle is a promise to the OS. Keep it.",
-	},
-	"go.err.nilerr": {
-		"Handling an error then returning nil is how silent failures are born.",
-		"The if-block is there for a reason. Use it or delete it.",
-		"nil, nil compiles but does not compute.",
-	},
 }
+
+// punchlines is the full rule-to-punchline lookup, assembled from the core map
+// in this file plus the newer entries in roast_extra.go.
+var punchlines = mergePunchlines(punchlinesCore, punchlinesExtra)
 
 var fallback = []string{
 	"This is technically code.",

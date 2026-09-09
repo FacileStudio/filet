@@ -4,52 +4,40 @@ import (
 	"go/ast"
 )
 
-// findDeferredCloses finds all variables that are closed via defer,
-// including Close() calls inside anonymous functions passed to defer.
-func (g *goFile) findDeferredCloses(body *ast.BlockStmt) map[string]bool {
-	closes := make(map[string]bool)
-	ast.Inspect(body, func(n ast.Node) bool {
-		deferStmt, ok := n.(*ast.DeferStmt)
-		if !ok {
-			return true
-		}
-		g.findClosingInDefer(deferStmt.Call.Fun, closes)
-		return true
-	})
-	return closes
-}
-
-// findClosingInDefer searches the deferred expression for Close() calls on
-// variables. It descends into anonymous functions passed to defer.
-func (g *goFile) findClosingInDefer(e ast.Expr, closes map[string]bool) {
-	switch t := e.(type) {
-	case *ast.SelectorExpr:
-		if t.Sel.Name == "Close" {
-			if ident, ok := t.X.(*ast.Ident); ok {
-				closes[ident.Name] = true
-			}
-		}
-	case *ast.CallExpr:
-		g.findClosingInDefer(t.Fun, closes)
-		for _, arg := range t.Args {
-			g.findClosingInDefer(arg, closes)
-		}
-	case *ast.FuncLit:
-		g.findClosingInDeferInBody(t.Body, closes)
-	}
-}
-
-func (g *goFile) findClosingInDeferInBody(body *ast.BlockStmt, closes map[string]bool) {
+// findClosedVars finds every variable used as the receiver of any Close() call
+// in the body — deferred (defer f.Close(), a deferred closure) or explicit
+// (f.Close(), errors.Join(werr, f.Close())). Presence of a Close() call is
+// treated as "the resource is managed". It is path-blind by design; it catches
+// resources that are never closed at all, which is the dominant real leak.
+func (g *goFile) findClosedVars(body *ast.BlockStmt) map[string]bool {
+	closed := make(map[string]bool)
 	ast.Inspect(body, func(n ast.Node) bool {
 		sel, ok := n.(*ast.SelectorExpr)
-		if !ok {
+		if !ok || sel.Sel.Name != "Close" {
 			return true
 		}
-		if sel.Sel.Name == "Close" {
-			if ident, ok := sel.X.(*ast.Ident); ok {
-				closes[ident.Name] = true
-			}
+		if name := closeReceiver(sel.X); name != "" {
+			closed[name] = true
 		}
 		return true
 	})
+	return closed
+}
+
+// closeReceiver returns the root identifier of a method receiver chain: "file"
+// for file.Close() and "resp" for resp.Body.Close(). It returns "" when the
+// receiver starts with a call (f().Close()), because no owned variable is there.
+func closeReceiver(x ast.Expr) string {
+	for {
+		switch t := x.(type) {
+		case *ast.Ident:
+			return t.Name
+		case *ast.SelectorExpr:
+			x = t.X
+		case *ast.IndexExpr:
+			x = t.X
+		default:
+			return ""
+		}
+	}
 }

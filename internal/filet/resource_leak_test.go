@@ -92,3 +92,48 @@ func TestHandler() {
 		t.Fatalf("expected 0 go.leak.resource findings in test file, got %d in %v", n, ruleIDs(got))
 	}
 }
+
+func TestResourceLeakNotFlaggedForBorrowedHandle(t *testing.T) {
+	cfg := DefaultConfig()
+	f := source(t, "borrowed.go", `package borrowed
+
+import (
+	"os"
+)
+
+func writeAll(w *os.File) error {
+	out := os.Stdout
+	_, err := out.Write([]byte("x"))
+	_ = w
+	return err
+}
+`)
+	got := CheckGo(cfg, f)
+	if n := countRule(got, "go.leak.resource"); n != 0 {
+		t.Fatalf("expected 0 go.leak.resource findings for a borrowed handle, got %d in %v", n, ruleIDs(got))
+	}
+}
+
+func TestResourceLeakNotFlaggedWhenExplicitClose(t *testing.T) {
+	cfg := DefaultConfig()
+	f := source(t, "closeexpr.go", `package closeexpr
+
+import (
+	"errors"
+	"os"
+)
+
+func appendLine(path string, line []byte) error {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_RDONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	_, werr := f.Write(append(line, '\n'))
+	return errors.Join(werr, f.Close())
+}
+`)
+	got := CheckGo(cfg, f)
+	if n := countRule(got, "go.leak.resource"); n != 0 {
+		t.Fatalf("expected 0 go.leak.resource findings for an explicit Close, got %d in %v", n, ruleIDs(got))
+	}
+}

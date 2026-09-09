@@ -9,8 +9,16 @@ import (
 )
 
 func runGoChecks(cfg *Config, f SourceFile, fset *token.FileSet, parsed *ast.File) []Finding {
+	return runGoChecksInfo(cfg, f, fset, parsed, typeInfoFor(cfg, fset, []*ast.File{parsed}))
+}
+
+// runGoChecksInfo runs the AST rules over one parsed file, carrying the type
+// info produced for its whole package. checkGoFiles calls it once per file of a
+// package with the same info so go.leak.resource sees symbols from sibling
+// files. It is partial-safe: go/types keeps filling info even when some import
+// cannot be resolved, so the leak rule runs on whatever did resolve.
+func runGoChecksInfo(cfg *Config, f SourceFile, fset *token.FileSet, parsed *ast.File, info *types.Info) []Finding {
 	var out []Finding
-	info, infoErr := typeInfoFor(cfg, parsed, fset)
 	g := &goFile{
 		cfg:    cfg,
 		file:   parsed,
@@ -24,11 +32,13 @@ func runGoChecks(cfg *Config, f SourceFile, fset *token.FileSet, parsed *ast.Fil
 	g.inBodyComments()
 	g.calls()
 	g.nilerrCheck()
-	if infoErr {
-		out = append(out, newFinding("go.leak.resource", f.Display, 1, Info,
-			"could not run the resource-leak check: type information is unavailable for this file"))
-	} else if info != nil {
-		g.resourceLeaks()
+	if cfg.Enabled("go.leak.resource") {
+		if info == nil {
+			out = append(out, newFinding("go.leak.resource", f.Display, 1, Info,
+				"could not run the resource-leak check: type information is unavailable for this file"))
+		} else {
+			g.resourceLeaks()
+		}
 	}
 	return out
 }
@@ -45,9 +55,15 @@ func makeGoFindingsAdder(cfg *Config, f SourceFile, fset *token.FileSet, out *[]
 	}
 }
 
-func typeInfoFor(cfg *Config, parsed *ast.File, fset *token.FileSet) (*types.Info, bool) {
-	if !cfg.Enabled("go.leak.resource") {
-		return nil, false
+// typeInfoFor type-checks the given files as one package and returns the
+// produced type info, or nil when nothing usable resolved. go/types fills
+// info with everything it can even when Check returns an error (an
+// unresolvable third-party import, an undefined name) — only a check that
+// resolves nothing yields nil. Each file of a package is passed the same
+// result so cross-file symbols are available to the leak rule.
+func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Info {
+	if !cfg.Enabled("go.leak.resource") || len(files) == 0 {
+		return nil
 	}
 	info := &types.Info{
 		Types: make(map[ast.Expr]types.TypeAndValue),
@@ -55,8 +71,8 @@ func typeInfoFor(cfg *Config, parsed *ast.File, fset *token.FileSet) (*types.Inf
 		Uses:  make(map[*ast.Ident]types.Object),
 	}
 	conf := &types.Config{Importer: importer.Default(), Error: func(err error) {}}
-	if _, err := conf.Check("", fset, []*ast.File{parsed}, info); err != nil {
-		return nil, true
+	if _, err := conf.Check(files[0].Name.Name, fset, files, info); err != nil && len(info.Types) == 0 {
+		return nil
 	}
-	return info, false
+	return info
 }

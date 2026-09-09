@@ -55,6 +55,15 @@ style:
 treesitter:
   enabled: true
 
+# lsp folds each language's server diagnostics into lsp.* findings, giving the
+# report a compiler's eye on top of filet's own heuristics. On by default. A
+# server that is missing or incompatible becomes one lsp.unavailable info
+# finding, never a crash or a silent skip.
+# lsp:
+#   fail: true                  # promote lsp.* to errors so the tier gates the build
+#   servers:                    # key by extension to override or add a server
+#     .py: {server: pyright}
+
 disabled: []              # e.g. [gen.line.long, go.doc.missing]
 
 failOn: %s                # info | warn | error | never

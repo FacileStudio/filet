@@ -69,6 +69,10 @@ var frozenRules = []string{
 	"ts.func.params",
 	"ts.func.statements",
 	"ts.nesting",
+	"lsp.error",
+	"lsp.info",
+	"lsp.unavailable",
+	"lsp.warn",
 }
 
 func TestRuleIDsAreFrozen(t *testing.T) {

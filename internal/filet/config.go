@@ -48,6 +48,28 @@ type Treesitter struct {
 	Enabled bool `yaml:"enabled"`
 }
 
+// LSP configures the language-server tier. On by default: for every language
+// with a server recipe, filet spawns the server, pulls its diagnostics and
+// folds them into lsp.* findings. Unlike the treesitter tier this one talks to
+// real processes, so a server that is missing, unsupported or broken degrades
+// to a single lsp.unavailable info finding rather than failing or staying
+// silent. Fail promotes every lsp.* finding to error so a repo can make the
+// tier part of its gate.
+type LSP struct {
+	Enabled bool              `yaml:"enabled"`
+	Fail    bool              `yaml:"fail"`
+	Servers map[string]Server `yaml:"servers"`
+}
+
+// Server is one language-server recipe. Server may be a bare name (resolved via
+// PATH, then the standard mason install dir) or an absolute path; Args is
+// passed after it. A recipe keyed by file extension in lsp.servers overrides
+// the built-in default for that language.
+type Server struct {
+	Server string   `yaml:"server"`
+	Args   []string `yaml:"args,omitempty"`
+}
+
 // Style holds the opinionated toggles that are a matter of team taste.
 type Style struct {
 	BanInlineComments  bool `yaml:"banInlineComments"`
@@ -67,6 +89,7 @@ type Config struct {
 	Architecture Architecture `yaml:"architecture"`
 	Style        Style        `yaml:"style"`
 	Treesitter   Treesitter   `yaml:"treesitter"`
+	LSP          LSP          `yaml:"lsp"`
 	Disabled     []string     `yaml:"disabled"`
 	FailOn       string       `yaml:"failOn"`
 
@@ -90,6 +113,7 @@ func DefaultConfig() *Config {
 		Architecture: Architecture{},
 		Style:        defaultStyle(),
 		Treesitter:   Treesitter{Enabled: true},
+		LSP:          defaultLSP(),
 		FailOn:       "error",
 	}
 }
