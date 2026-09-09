@@ -82,25 +82,31 @@ jobs:
             --data-binary "@${payload}" 2>&1)" || warn "${response}"
 
   build:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { goos: linux, goarch: amd64 }
-          - { goos: linux, goarch: arm64 }
-          - { goos: darwin, goarch: arm64 }
-          - { goos: windows, goarch: amd64 }
+    # The treesitter tier is a mandatory cgo package, so every release target
+    # needs a native C toolchain: zig for the linux cross-targets, clang + the
+    # macOS SDK for darwin. One macos runner covers all; the goreleaser config
+    # is the single source of truth for the per-target toolchain flags, same as
+    # the release workflow.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
 
-      - name: build ${{ matrix.goos }}/${{ matrix.goarch }}
+      - uses: mlugg/setup-zig@v2
+
+      - name: Resolve macOS SDK
+        id: macos_sdk
+        run: echo "path=$(xcrun --show-sdk-path)" >> $GITHUB_OUTPUT
+
+      - uses: goreleaser/goreleaser-action@v7
+        with:
+          version: "~> v2"
+          args: build --clean --snapshot
         env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: "0"
-        run: go build -o /dev/null .
+          SDK_PATH: ${{ steps.macos_sdk.outputs.path }}
