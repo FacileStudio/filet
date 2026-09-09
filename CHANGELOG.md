@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-09-09
+### Added
+- Styled help output (`filet --help`): cyan section headers, bold commands, aligned descriptions, media-aware (plain off a terminal).
+- Golden tests for the CI (JSON) and SARIF renderers.
+- Opt-in lipgloss report renderer, not yet wired into the default path.
+
+### Changed
+- Extracted Rust raw-string scanning out of the line scanner into `rust.go`.
+- Moved TODO-marker detection from `text.go` into `rules_generic.go`.
+
+### Fixed
+- `.gitignore` rule that silently matched the `internal/filet/` directory, which hid new files there from version control. Anchored the pattern to the repo root.
+
 ## [0.7.1] — 2026-09-08
 ### Changed
 - Release v0.7.1: no functional changes; updates CI and local quality gate.
