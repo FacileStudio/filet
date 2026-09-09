@@ -7,11 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- A tree-sitter analysis tier. With `treesitter.enabled`, files in a language with a vendored
+- A tree-sitter analysis tier, on by default. Files in a language with a vendored
   grammar (`.rs` today) get their shape rules — `ts.nesting`, `ts.func.long`, `ts.func.params`,
   `ts.func.statements`, `ts.func.complexity` — measured on a real parse tree instead of the
   brace-counting used for the other non-Go languages. Each grammar's generated C is vendored and
-  bound with cgo, so the tier stays deterministic and offline. Off by default.
+  bound with cgo, so the tier is deterministic and offline. Set `treesitter.enabled: false` to
+  fall back to the brace-counting rules.
 - `-format lipgloss` is now reachable: the lipgloss renderer is wired into the format flag and documented in `--help`.
 
 ### Fixed

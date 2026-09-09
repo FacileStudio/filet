@@ -49,10 +49,11 @@ style:
   banTrailingSpace: %t
 
 # treesitter parses non-Go files (.rs, and any grammar filet vendors) to anchor
-# shape rules on real syntax instead of brace counting. Off by default; each
-# grammar is compiled into filet, so enabling it stays deterministic and offline.
-# treesitter:
-#   enabled: true
+# shape rules on real syntax instead of brace counting. On by default; each
+# grammar is compiled into filet, so it is deterministic and offline. Set false
+# to fall back to the lighter brace-counting rules.
+treesitter:
+  enabled: true
 
 disabled: []              # e.g. [gen.line.long, go.doc.missing]
 

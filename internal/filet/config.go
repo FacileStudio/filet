@@ -40,8 +40,10 @@ type Architecture struct {
 	ForbiddenImports map[string][]string `yaml:"forbiddenImports"`
 }
 
-// Treesitter configures the parse-tree analysis tier. Off by default so filet
-// stays deterministic and offline until a project opts into vendored grammars.
+// Treesitter configures the parse-tree analysis tier. On by default: the tier
+// is deterministic and offline (grammars are vendored C, no server, no build
+// fetch) and only engages on languages that ship a grammar — where it is always
+// strictly better than the brace-counting it replaces.
 type Treesitter struct {
 	Enabled bool `yaml:"enabled"`
 }
@@ -87,7 +89,7 @@ func DefaultConfig() *Config {
 		Limits:       defaultLimits(),
 		Architecture: Architecture{},
 		Style:        defaultStyle(),
-		Treesitter:   Treesitter{},
+		Treesitter:   Treesitter{Enabled: true},
 		FailOn:       "error",
 	}
 }

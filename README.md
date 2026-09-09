@@ -137,10 +137,11 @@ Generic rules run on every configured extension. Go files additionally go throug
 function length, parameter count, cyclomatic complexity, naked returns, discarded return values,
 oversized interfaces and package-level mutable state are measured rather than guessed.
 
-When `treesitter.enabled` is set, languages that ship a vendored grammar (`.rs` today) are parsed
-with tree-sitter, so their shape rules — nesting, function length, params, statements, cognitive
-complexity — are measured on real syntax instead of the brace counting used for the other
-non-Go languages.
+When a language ships a vendored grammar (`.rs` today), filet parses it with tree-sitter, so its
+shape rules — nesting, function length, params, statements, cognitive complexity — are measured on
+real syntax instead of the brace counting used for the other non-Go languages. The tier is on by
+default and deterministic and offline (grammars are compiled in); set `treesitter.enabled: false`
+to fall back to the lighter brace-counting rules.
 
 ```sh
 filet check .

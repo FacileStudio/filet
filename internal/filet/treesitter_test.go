@@ -90,12 +90,15 @@ func TestTreesitterOwnsNestingWhenEnabled(t *testing.T) {
 	}
 }
 
-func TestTreesitterOffByDefault(t *testing.T) {
+func TestTreesitterOnByDefault(t *testing.T) {
 	cfg := DefaultConfig()
-	if cfg.Treesitter.Enabled {
-		t.Fatal("treesitter must default to off so filet's offline gate is unchanged")
+	if !cfg.Treesitter.Enabled {
+		t.Fatal("treesitter is deterministic and offline, so it must default on")
 	}
-	if cfg.UsesTreesitter(".rs") {
-		t.Fatal("with the tier off, no file should route through a grammar")
+	if !cfg.UsesTreesitter(".rs") {
+		t.Fatal("with the tier on, a vendored-grammar file must route through the parse tree")
+	}
+	if cfg.UsesTreesitter(".ts") {
+		t.Fatal("a language without a vendored grammar must keep the brace-counting rules")
 	}
 }
