@@ -6,21 +6,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-09-09
+
 ### Added
-- A tree-sitter analysis tier, on by default. Files in a language with a vendored
-  grammar (`.rs` today) get their shape rules — `ts.nesting`, `ts.func.long`, `ts.func.params`,
-  `ts.func.statements`, `ts.func.complexity` — measured on a real parse tree instead of the
-  brace-counting used for the other non-Go languages. Each grammar's generated C is vendored and
-  bound with cgo, so the tier is deterministic and offline. Set `treesitter.enabled: false` to
-  fall back to the brace-counting rules.
-- `-format lipgloss` is now reachable: the lipgloss renderer is wired into the format flag and documented in `--help`.
+- The language-server (LSP) tier, on by default. For every file whose language
+  has a server recipe (Go, Rust, TypeScript, Svelte), filet spawns the server,
+  collects its `publishDiagnostics` and folds them into `lsp.error` / `lsp.warn`
+  / `lsp.info` findings. A missing, unsupported or unresponsive server degrades
+  to a single `lsp.unavailable` info finding — never a crash, never silence.
+  `lsp.fail: true` promotes every `lsp.*` finding to error so the tier gates a
+  build. Servers are overridden per extension in `lsp.servers`; a global
+  `~/.config/filet/filet.yml` can add or replace recipes. One server is spawned
+  per distinct recipe, so a single TypeScript server serves `.ts/.tsx/.js/.jsx`.
+- A tree-sitter analysis tier, now on by default. Files in a language with a
+  vendored grammar (`.rs` today) get their shape rules — `ts.nesting`,
+  `ts.func.long`, `ts.func.params`, `ts.func.statements`, `ts.func.complexity` —
+  measured on a real parse tree instead of brace-counting. Each grammar's
+  generated C is vendored and bound with cgo, so the tier is deterministic and
+  offline. Set `treesitter.enabled: false` to fall back to brace-counting.
+- `-format lipgloss` is now reachable: the lipgloss renderer is wired into the
+  format flag and documented in `--help`.
+- `go.leak.resource` now actually runs: the leak rule is type-checked per
+  package (one shared `types.Info` per package, so a file resolves symbols its
+  siblings define) and keeps the partial type info `go/types` resolves even when
+  a third-party import is unavailable. It previously no-op'd on real code.
 
 ### Fixed
-- `go.err.nilerr` no longer fires on a value guard: it now reports only when the compared identifier is the error slot of an error-returning call, so `if item != nil { return item, nil }` stops being flagged as a swallowed error.
-- `go.leak.resource` no longer fails silent: when type information is unavailable (real cross-module files), it reports an info finding instead of quietly doing nothing.
-- Tree-sitter shape metrics (`ts.func.*`) are no longer computed twice per function, and multi-line block comments no longer count their continuation lines as code.
-- `-format` is validated after the path, so `filet check . -format bogus` is rejected like the flag-before-path form.
-- The GitHub action's default install version and the README pins are back in step with the newest tag (v0.8.0).
+- `go.leak.resource` now hands out trustworthy findings: closed detection is no
+  longer defer-only — an explicit `errors.Join(werr, f.Close())` or a receiver
+  chain like `resp.Body.Close()` counts — and borrowed handles (`os.Stdout`, a
+  type assertion, a field read) are no longer flagged as acquisitions.
+- The LSP server conversation is fully bounded. A server that stalls on
+  `initialize` or never publishes diagnostics is killed, with its whole process
+  group, after a timeout instead of hanging the run; partial diagnostics are
+  kept when only some files report.
+- A malformed global `~/.config/filet/filet.yml` no longer fails every check
+  run; its `lsp.servers` layer is ignored instead.
+- `go.err.nilerr` no longer fires on a value guard: it reports only when the
+  compared identifier is the error slot of an error-returning call, so
+  `if item != nil { return item, nil }` stops being flagged as a swallowed
+  error.
+- Tree-sitter shape metrics (`ts.func.*`) are no longer computed twice per
+  function, and multi-line block comments no longer count their continuation
+  lines as code.
+- `-format` is validated after the path, so `filet check . -format bogus` is
+  rejected like the flag-before-path form.
+- The GitHub action's default install version and the README pins are back in
+  step with the newest tag.
 
 ## [0.9.0] — 2026-09-09
 ### Added
