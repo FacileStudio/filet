@@ -137,6 +137,11 @@ Generic rules run on every configured extension. Go files additionally go throug
 function length, parameter count, cyclomatic complexity, naked returns, discarded return values,
 oversized interfaces and package-level mutable state are measured rather than guessed.
 
+When `treesitter.enabled` is set, languages that ship a vendored grammar (`.rs` today) are parsed
+with tree-sitter, so their shape rules — nesting, function length, params, statements, cognitive
+complexity — are measured on real syntax instead of the brace counting used for the other
+non-Go languages.
+
 ```sh
 filet check .
 filet roast internal/          # same findings, plus commentary
@@ -256,9 +261,11 @@ erode the default one threshold at a time.
 
 ### Function budget
 
-Counting is exact on Go (`go/ast`, methods included, `_test.go` files exempt) and pattern-based on
-`.ts .tsx .js .jsx .svelte .rs .py .rb .java .sh` — arrow functions assigned to a binding count,
-anonymous callbacks do not. `funcLines` is Go-only; the other languages get `fileLines` and nesting.
+Counting is exact on Go (`go/ast`, methods included, `_test.go` files exempt) and, with
+`treesitter.enabled`, exact on every language with a vendored grammar (`.rs` today). The rest are
+pattern-based on `.ts .tsx .js .jsx .svelte .rs .py .rb .java .sh` — arrow functions assigned to a
+binding count, anonymous callbacks do not. `funcLines`, statement counts and cognitive complexity
+are Go-only (or tree-sitter) measurements; the pattern-based languages get `fileLines` and nesting.
 
 Package-level vars initialised through a `Must…` or `Once…` constructor (`regexp.MustCompile`,
 `template.Must`, `sync.OnceValue`) are treated as immutable singletons and skipped.

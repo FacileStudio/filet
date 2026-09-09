@@ -11,7 +11,6 @@ var punchlines = map[string][]string{
 	"gen.file.funcs": {
 		"This file is not a module, it is a neighbourhood.",
 		"Five functions was the budget. This is a spending problem.",
-		"Somewhere past function six, cohesion left the building.",
 	},
 	"go.file.funcs": {
 		"One file, many jobs, zero boundaries.",
@@ -56,7 +55,6 @@ var punchlines = map[string][]string{
 	"go.func.long": {
 		"This function does not have a responsibility, it has a portfolio.",
 		"By line 80 the function has forgotten its own name.",
-		"Split this before it develops opinions.",
 	},
 	"go.func.params": {
 		"That is not a signature, that is a customs declaration.",
@@ -70,11 +68,25 @@ var punchlines = map[string][]string{
 	"go.func.complexity": {
 		"The branches in here form a small but hostile ecosystem.",
 		"Nested this deep, the control flow needs a table of contents.",
-		"Every new condition here is a bug applying for a visa.",
 	},
 	"go.func.statements": {
 		"That is not a function, that is an itinerary.",
 		"Count the statements, then count how many belong together. Different numbers.",
+	},
+	"ts.nesting": {
+		"Depth like this reads like a tower of leaky abstractions.",
+	},
+	"ts.func.long": {
+		"The parse tree knows a run-on when it sees one.",
+	},
+	"ts.func.params": {
+		"That signature is a data structure wearing a costume.",
+	},
+	"ts.func.complexity": {
+		"Control flow this tangled needs a map, not a refactor.",
+	},
+	"ts.func.statements": {
+		"Statement count says this body is a side quest.",
 	},
 	"go.return.naked": {
 		"Naked returns: mystery meat, but for control flow.",

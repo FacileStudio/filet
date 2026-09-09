@@ -5,7 +5,9 @@ go 1.26.5
 require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/goccy/go-yaml v1.19.2
+	github.com/mattn/go-pointer v0.0.1
 	github.com/muesli/termenv v0.16.0
+	github.com/tree-sitter/go-tree-sitter v0.24.0
 )
 
 require (

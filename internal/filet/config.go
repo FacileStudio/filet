@@ -40,6 +40,12 @@ type Architecture struct {
 	ForbiddenImports map[string][]string `yaml:"forbiddenImports"`
 }
 
+// Treesitter configures the parse-tree analysis tier. Off by default so filet
+// stays deterministic and offline until a project opts into vendored grammars.
+type Treesitter struct {
+	Enabled bool `yaml:"enabled"`
+}
+
 // Style holds the opinionated toggles that are a matter of team taste.
 type Style struct {
 	BanInlineComments  bool `yaml:"banInlineComments"`
@@ -58,6 +64,7 @@ type Config struct {
 	Limits       Limits       `yaml:"limits"`
 	Architecture Architecture `yaml:"architecture"`
 	Style        Style        `yaml:"style"`
+	Treesitter   Treesitter   `yaml:"treesitter"`
 	Disabled     []string     `yaml:"disabled"`
 	FailOn       string       `yaml:"failOn"`
 
@@ -80,6 +87,7 @@ func DefaultConfig() *Config {
 		Limits:       defaultLimits(),
 		Architecture: Architecture{},
 		Style:        defaultStyle(),
+		Treesitter:   Treesitter{},
 		FailOn:       "error",
 	}
 }
@@ -130,3 +138,9 @@ func (c *Config) Enabled(rule string) bool {
 
 // Root returns the absolute directory the config was found in.
 func (c *Config) Root() string { return c.root }
+
+// UsesTreesitter reports whether the parse-tree tier owns ext's shape rules:
+// the tier is enabled and a grammar is registered for the extension.
+func (c *Config) UsesTreesitter(ext string) bool {
+	return c.Treesitter.Enabled && HasGrammar(ext)
+}

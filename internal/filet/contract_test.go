@@ -64,6 +64,11 @@ var frozenRules = []string{
 	"go.struct.fields",
 	"go.leak.resource",
 	"go.err.nilerr",
+	"ts.func.complexity",
+	"ts.func.long",
+	"ts.func.params",
+	"ts.func.statements",
+	"ts.nesting",
 }
 
 func TestRuleIDsAreFrozen(t *testing.T) {

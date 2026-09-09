@@ -24,8 +24,12 @@ architecture:
   forbiddenDirs: [internal/utils, internal/helpers, pkg/common]
   maxDepth: 3
   fileNamePattern: '^[a-z0-9_]+\.go$'
+  # The treesitter tier imports vendored grammar modules under tree_sitter/ —
+  # third-party C that internal/filet legitimately depends on. The ban is scoped
+  # to filet's own Go source so it keeps guarding against a rule package that
+  # reaches into the tool's other internals, without flagging that vendored C.
   forbiddenImports:
-    internal/filet: [github.com/FacileStudio/filet]
+    internal/filet: [github.com/FacileStudio/filet/internal]
 
 disabled:
   # gofmt/rustfmt/prettier owns line breaking; every survivor is a line no

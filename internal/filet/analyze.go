@@ -31,6 +31,8 @@ func Analyze(cfg *Config, target string) (Report, error) {
 		report.Findings = append(report.Findings, CheckGeneric(cfg, f)...)
 		if f.Ext == ".go" {
 			report.Findings = append(report.Findings, CheckGo(cfg, f)...)
+		} else if cfg.UsesTreesitter(f.Ext) {
+			report.Findings = append(report.Findings, CheckTree(cfg, f)...)
 		}
 	}
 	report.Findings = append(report.Findings, CheckArchitecture(cfg, files)...)

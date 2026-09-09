@@ -147,7 +147,7 @@ func (s *lineScan) brace(n int, stripped string) {
 }
 
 func (s *lineScan) nesting() {
-	if !s.cfg.Enabled("gen.nesting") || s.maxDepth <= s.cfg.Limits.Nesting {
+	if !s.cfg.Enabled("gen.nesting") || s.cfg.UsesTreesitter(s.f.Ext) || s.maxDepth <= s.cfg.Limits.Nesting {
 		return
 	}
 	s.out = append(s.out, newFinding("gen.nesting", s.f.Display, s.maxDepthLine, Warn,
