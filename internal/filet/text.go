@@ -50,8 +50,10 @@ func trailingComment(ext, stripped string) bool {
 // lineState carries the scanner's position across a line boundary: only raw
 // strings and block comments can stay open at the end of a line.
 type lineState struct {
-	raw   bool
-	block bool
+	raw        bool
+	block      bool
+	rustRaw    bool
+	rustHashes int
 }
 
 // stripLine removes string literal contents and block comments from one line so
@@ -66,10 +68,28 @@ func stripLine(line string, st lineState) (string, lineState) {
 		quote = '`'
 	}
 	escaped := false
+	rustRaw := st.rustRaw
+	rustHashes := st.rustHashes
 
 	for i := 0; i < len(line); i++ {
 		c := line[i]
 		switch {
+		case rustRaw:
+			// Inside a Rust raw string only the matching closing quote
+			// matters; everything else, // included, is string content.
+			if c == '"' {
+				h := 0
+				j := i + 1
+				for j < len(line) && line[j] == '#' {
+					h++
+					j++
+				}
+				if h == rustHashes {
+					rustRaw = false
+					i = j - 1
+					continue
+				}
+			}
 		case quote != 0:
 			quote, escaped = advance(c, quote, escaped)
 		case st.block:
@@ -79,17 +99,33 @@ func stripLine(line string, st lineState) (string, lineState) {
 			}
 		case c == '/' && peek(line, i) == '/':
 			b.WriteString(line[i:])
-			return b.String(), lineState{}
+			return b.String(), lineState{raw: quote == '`', block: st.block, rustRaw: rustRaw, rustHashes: rustHashes}
 		case c == '/' && peek(line, i) == '*':
 			st.block = true
 			i++
+		case (c == 'r' || c == 'R'):
+			// A Rust raw string opens with r"..., r#"..."##, etc. The
+			// character after r is the first # (or the opening ").
+			h := 0
+			j := i + 1
+			for j < len(line) && line[j] == '#' {
+				h++
+				j++
+			}
+			if j < len(line) && line[j] == '"' {
+				rustRaw = true
+				rustHashes = h
+				i = j
+				continue
+			}
+			b.WriteByte(c)
 		case c == '\'' || c == '"' || c == '`':
 			quote = c
 		default:
 			b.WriteByte(c)
 		}
 	}
-	return b.String(), lineState{raw: quote == '`', block: st.block}
+	return b.String(), lineState{raw: quote == '`', block: st.block, rustRaw: rustRaw, rustHashes: rustHashes}
 }
 
 func peek(line string, i int) byte {

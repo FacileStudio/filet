@@ -41,8 +41,12 @@ func filePath(p paintFn, rel string) string {
 func writeGroup(w io.Writer, p paintFn, g Glyphs, findings []Finding, roast bool) {
 	at, rule := 0, 0
 	for _, f := range findings {
-		at = max(at, len(position(f)))
-		rule = max(rule, len(f.Rule))
+		if len(position(f)) > at {
+			at = len(position(f))
+		}
+		if len(f.Rule) > rule {
+			rule = len(f.Rule)
+		}
 	}
 	for _, f := range findings {
 		colour := severityColor(f.Severity)

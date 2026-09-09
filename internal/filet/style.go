@@ -4,6 +4,9 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
 
 const (
@@ -82,4 +85,14 @@ func gradeColor(g string) string {
 	default:
 		return red
 	}
+}
+
+func newRenderer(w io.Writer) *lipgloss.Renderer {
+	r := lipgloss.NewRenderer(w)
+	if !Colorize(w) {
+		r.SetColorProfile(termenv.Ascii)
+	} else {
+		r.SetColorProfile(termenv.TrueColor)
+	}
+	return r
 }

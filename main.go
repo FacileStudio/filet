@@ -9,25 +9,37 @@ import (
 	"github.com/FacileStudio/filet/internal/filet"
 )
 
-var version = "0.6.0"
+var version = "0.7.1"
 
 const usage = `filet — style checker, code roaster and test runner
 
-usage:
-  filet check   [flags] [path]   run style, quality and architecture rules
-  filet roast   [flags] [path]   same rules, with commentary
-  filet docker  [flags] [path]   roast every Dockerfile it finds
-  filet test    [flags] [path]   detect and run the project's test suites
-  filet init    [flags] [path]   write a commented filet.yml (-preset relaxed|epitech)
-  filet rules                    list every rule id
+COMMANDS
+
+  filet check   [flags] [path]   Run style, quality and architecture rules.
+  filet roast   [flags] [path]   Run the same checks, with punchlines.
+  filet docker  [flags] [path]   Roast every Dockerfile found under path.
+  filet test    [flags] [path]   Detect and run the project's test suites.
+  filet init    [flags] [path]   Write a commented filet.yml (-preset relaxed|epitech).
+  filet rules                    List every rule id.
   filet version
 
-droast is an alias for "filet docker".
+DROAST
 
-flags:
-  -format auto|text|line|json|sarif|github   output format (default auto)
-  -fail info|warn|error|never   severity that makes the command exit 1
-  -quiet               only print the summary
+  droast is an alias for "filet docker".
+
+FLAGS
+
+  -format auto|text|line|json|sarif|github   Output format. Default: auto.
+  -fail   info|warn|error|never              Severity that makes the command fail.
+  -quiet                                     Print the summary only.
+
+EXAMPLES
+
+  filet check .
+  filet roast ./apps ./pkg
+  filet docker .
+  filet test ./apps/api
+  filet init -preset relaxed
 `
 
 func main() {

@@ -91,6 +91,24 @@ func TestRawStringSpansLines(t *testing.T) {
 	}
 }
 
+func TestRustRawStringDoesNotLookLikeInlineComment(t *testing.T) {
+	cfg := DefaultConfig()
+	for _, tc := range []struct {
+		ext, body string
+		want      int
+	}{
+		{".rs", "src = r\"// still literal\n\";\n", 0},
+		{".rs", "src = r##\"// not a comment either\n\"##;\n", 0},
+		{".rs", "let s = \"// still literal\";\n", 0},
+		{".rs", "// HEADER\nstruct S {\n    a: i32,\n    // standalone comment\n    b: u64, // inline\n}\n", 1},
+	} {
+		f := source(t, "f"+tc.ext, tc.body)
+		if n := countRule(CheckGeneric(cfg, f), "gen.comment.inline"); n != tc.want {
+			t.Errorf("Rust inline-comment %q: got %d, want %d", tc.body, n, tc.want)
+		}
+	}
+}
+
 func TestStripLineKeepsCodeAndDropsLiterals(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{`a := "he{llo"`, "a := "},

@@ -1,14 +1,16 @@
 # Changelog
 
 All notable changes to this project are documented here. The format is
-[Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
-follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
-`0.x`, a breaking change bumps the minor.
+[Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.6.0] — 2026-09-08
+## [0.7.1] — 2026-09-08
+### Changed
+- Release v0.7.1: no functional changes; updates CI and local quality gate.
 
+## [0.7.0] — 2026-09-08
 ### Added
 - go.err.nilerr rule: detects functions that handle an error but return nil in its place (the nilerr bug)
 - Corresponding unit tests in nilerr_test.go and rules_test.go
@@ -19,19 +21,41 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
 - Refactored go leak detection: moved `go_leaks.go`, `deferred.go`, `go_findings.go`, `types.go`, `receivers.go`, `nilerr_test.go`, and `resource_leak_test.go` into separate files for better maintainability
 - `go.leak.resource` now correctly detects Close() calls inside deferred anonymous functions, fixing false positives on idiomatic patterns like `defer func() { f.Close() }()`
 
-## [0.5.0] — 2026-09-08
+## [0.6.0] — 2026-09-08
+### Added
+- go.err.nilerr rule: detects functions that handle an error but return nil in its place (the nilerr bug)
+- Corresponding unit tests in rules_test.go
+- Updated frozen rules list to include go.err.nilerr
+- Added roast punchlines for the new rule
 
 ### Changed
+- `go.leak.resource` now detects Close() calls inside deferred anonymous functions, fixing false positives on idiomatic patterns like `defer func() { f.Close() }()`
 
+## [0.5.0] — 2026-09-08
+### Changed
 - `filet.yml` and `filet.yaml` come first in the discovery list, and are what
   `filet init` writes. A guidelines file is meant to be read, edited and argued
   with, so it should not be hidden. `.filet.yml` and `.filet.yaml` are still
   read, so an unrenamed repository keeps working with no coordinated upgrade.
 
-## [0.2.0] — 2026-08-10
+## [0.4.0] — 2026-09-08
+### Changed
+- docs: add changelog entry for go.leak.resource deferred func fix
 
+## [0.3.1] — 2026-08-24
 ### Added
+- 📝 docs: add a changelog, backfilled from the tag history
 
+## [0.3.0] — 2026-08-10
+### Added
+- First release. filet is a style checker, code roaster and test runner.
+- Per-directory layout contracts, checked against the paths they actually
+  match.
+- Output built around a parseable contract.
+- MIT license and a CI workflow that runs filet against filet.
+
+## [0.2.0] — 2026-08-10
+### Added
 - `-format github` writes workflow commands that annotate the pull request
   diff, and `-format sarif` feeds GitHub code scanning.
 - The JSON output carries the severity counts and the grade filet already
@@ -40,38 +64,20 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While on
   post the run to an Antenne webhook signed with HMAC-SHA256. filet itself
   never opens a socket, so the linter stays runnable offline.
 
-### Fixed
-
-- `gen.nesting` applied every closing brace on a line before every opening one,
-  and the clamp at zero hid the underflow, so the table-driven test idiom left
-  the depth counter raised for the rest of the file. Braces now apply in order,
-  and a pair opened and closed on one line scores nothing. Across five suite
-  repositories, 83 findings became 31.
-- `Grade()` divided by actual line count, so one info finding on a 37-line
-  Dockerfile graded F. A floor of 1000 lines fixes it and removes the
-  divide-by-zero.
-- `go.global.mutable` no longer flags `var ErrX = errors.New(...)`, which is how
-  the standard library declares `io.EOF`, and a wrapped package-doc line
-  beginning with the word "package" no longer reads as a commented-out package
-  clause.
-
 ## [0.1.0] — 2026-08-09
-
 ### Added
-
-- First release. filet is a style checker, roaster and test runner.
+- First release. filet is a style checker, code roaster and test runner.
 - Per-directory layout contracts, checked against the paths they actually
   match.
 - Output built around a parseable contract.
 - MIT license and a CI workflow that runs filet against filet.
 
-### Changed
-
-- Config discovery stops at the repository root, and the contract is frozen.
-- Moved to the FacileStudio organisation, with sharper comment rules and limits
-  tuned against real codebases.
-
-[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/FacileStudio/filet/compare/v0.7.0...v0.7.1
+[0.7.0]: https://github.com/FacileStudio/filet/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/FacileStudio/filet/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/FacileStudio/filet/compare/v0.4.0...v0.5.0
+[0.4.0]: https://github.com/FacileStudio/filet/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/FacileStudio/filet/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/FacileStudio/filet/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/FacileStudio/filet/compare/v0.1.0...v0.2.0

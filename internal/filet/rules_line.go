@@ -37,7 +37,7 @@ func checkLine(cfg *Config, f SourceFile, n int, raw, line string) []Finding {
 	if inlineComment(cfg, f, line) {
 		out = append(out, newFinding("gen.comment.inline", f.Display, n, Info, "inline comment trailing code"))
 	}
-	if cfg.Enabled("gen.commented.code") && commentedOut(f.Ext, raw) {
+	if cfg.Enabled("gen.commented.code") && commentedOut(f.Ext, line) {
 		out = append(out, newFinding("gen.commented.code", f.Display, n, Info, "commented-out code"))
 	}
 	return out
