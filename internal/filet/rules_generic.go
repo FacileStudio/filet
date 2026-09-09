@@ -161,9 +161,21 @@ func inlineComment(cfg *Config, f SourceFile, line string) bool {
 	return trailingComment(f.Ext, line) && !IsDirective(commentText(f.Ext, line))
 }
 
+var (
+	todoLead  = regexp.MustCompile(`(?i)^(TODO|FIXME|XXX|HACK)\b`)
+	todoAnnot = regexp.MustCompile(`(?i)\b(TODO|FIXME|XXX|HACK)\s*[:(]`)
+)
+
 func leftoverMarker(cfg *Config, f SourceFile, line string) string {
 	if !cfg.Style.BanTODO || !cfg.Enabled("gen.todo") {
 		return ""
 	}
-	return strings.ToUpper(todoMarker(commentText(f.Ext, line)))
+	text := commentText(f.Ext, line)
+	if m := todoLead.FindStringSubmatch(text); m != nil {
+		return strings.ToUpper(m[1])
+	}
+	if m := todoAnnot.FindStringSubmatch(text); m != nil {
+		return strings.ToUpper(m[1])
+	}
+	return ""
 }

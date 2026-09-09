@@ -1,14 +1,6 @@
 package filet
 
-import (
-	"regexp"
-	"strings"
-)
-
-var (
-	todoLead  = regexp.MustCompile(`(?i)^(TODO|FIXME|XXX|HACK)\b`)
-	todoAnnot = regexp.MustCompile(`(?i)\b(TODO|FIXME|XXX|HACK)\s*[:(]`)
-)
+import "strings"
 
 // trailingComment reports whether a line carries a comment after real code.
 // An escaped marker (a backslash immediately before it) is inside a string or
@@ -75,20 +67,10 @@ func stripLine(line string, st lineState) (string, lineState) {
 		c := line[i]
 		switch {
 		case rustRaw:
-			// Inside a Rust raw string only the matching closing quote
-			// matters; everything else, // included, is string content.
-			if c == '"' {
-				h := 0
-				j := i + 1
-				for j < len(line) && line[j] == '#' {
-					h++
-					j++
-				}
-				if h == rustHashes {
-					rustRaw = false
-					i = j - 1
-					continue
-				}
+			if end, ok := rustRawClose(line, i, rustHashes); ok {
+				rustRaw = false
+				i = end
+				continue
 			}
 		case quote != 0:
 			quote, escaped = advance(c, quote, escaped)
@@ -104,15 +86,7 @@ func stripLine(line string, st lineState) (string, lineState) {
 			st.block = true
 			i++
 		case (c == 'r' || c == 'R'):
-			// A Rust raw string opens with r"..., r#"..."##, etc. The
-			// character after r is the first # (or the opening ").
-			h := 0
-			j := i + 1
-			for j < len(line) && line[j] == '#' {
-				h++
-				j++
-			}
-			if j < len(line) && line[j] == '"' {
+			if j, h, ok := rustRawOpen(line, i); ok {
 				rustRaw = true
 				rustHashes = h
 				i = j
@@ -166,17 +140,4 @@ func commentText(ext, stripped string) string {
 		return ""
 	}
 	return strings.TrimLeft(stripped[i+len(marker):], " \t*")
-}
-
-// todoMarker reports a leftover work marker, but only in the form people
-// actually write one: leading the comment, or annotated with ":" or "(". Prose
-// such as "this is a hack to work around X" is not a marker.
-func todoMarker(text string) string {
-	if m := todoLead.FindStringSubmatch(text); m != nil {
-		return m[1]
-	}
-	if m := todoAnnot.FindStringSubmatch(text); m != nil {
-		return m[1]
-	}
-	return ""
 }
