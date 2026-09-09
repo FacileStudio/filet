@@ -13,7 +13,10 @@ env:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    # cgo needs a native C toolchain: clang + the macOS SDK for the darwin
+    # targets, zig for the linux cross-targets. One macos runner covers all
+    # four (see goreleaser/example-zig-cgo for the canonical pattern).
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
         with:
@@ -23,10 +26,17 @@ jobs:
         with:
           go-version: stable
 
+      - uses: mlugg/setup-zig@v2
+
+      - name: Resolve macOS SDK
+        id: macos_sdk
+        run: echo "path=$(xcrun --show-sdk-path)" >> $GITHUB_OUTPUT
+
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --clean
         env:
+          SDK_PATH: ${{ steps.macos_sdk.outputs.path }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
