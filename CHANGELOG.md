@@ -18,10 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `go.err.nilerr` no longer fires on a value guard: it now reports only when the compared identifier is the error slot of an error-returning call, so `if item != nil { return item, nil }` stops being flagged as a swallowed error.
 - `go.leak.resource` no longer fails silent: when type information is unavailable (real cross-module files), it reports an info finding instead of quietly doing nothing.
+- Tree-sitter shape metrics (`ts.func.*`) are no longer computed twice per function, and multi-line block comments no longer count their continuation lines as code.
 - `-format` is validated after the path, so `filet check . -format bogus` is rejected like the flag-before-path form.
 - The GitHub action's default install version and the README pins are back in step with the newest tag (v0.8.0).
 
-## [0.8.0] — 2026-09-09
+## [0.9.0] — 2026-09-09
 ### Added
 - Styled help output (`filet --help`): cyan section headers, bold commands, aligned descriptions, media-aware (plain off a terminal).
 - Golden tests for the CI (JSON) and SARIF renderers.
