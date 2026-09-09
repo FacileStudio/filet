@@ -102,3 +102,22 @@ func TestTreesitterOnByDefault(t *testing.T) {
 		t.Fatal("a language without a vendored grammar must keep the brace-counting rules")
 	}
 }
+
+func TestTreesitterBlockCommentContinuation(t *testing.T) {
+	cfg := tsConfig(t, Limits{Nesting: 6, Complexity: 20, FuncLines: 4, FuncStatements: 25, Params: 2})
+	f := source(t, "comment.rs", strings.Join([]string{
+		"fn probe(x: i32) -> i32 {",
+		"    let a = 1;",
+		"    /*",
+		"     * a multi-line block comment",
+		"     * whose continuation lines are not code",
+		"     */",
+		"    return a;",
+		"}",
+	}, "\n"))
+
+	got := CheckTree(cfg, f)
+	if slices.Contains(ruleIDs(got), "ts.func.long") {
+		t.Fatal("a multi-line block comment's continuation lines must not count as code")
+	}
+}

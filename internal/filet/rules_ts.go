@@ -81,25 +81,29 @@ func (s *tsFile) function(fn *tree_sitter.Node) {
 	name, _ := fnName(fn, s.f.Src)
 	lim, line := s.cfg.Limits, 1+int(fn.StartPosition().Row)
 
-	long := lim.FuncLines > 0 && s.linesOf(body) > lim.FuncLines
-	if long {
-		s.add("ts.func.long", line, Warn,
-			fmt.Sprintf("%s is %d lines of code (limit %d)", name, s.linesOf(body), lim.FuncLines))
+	if lim.FuncLines > 0 {
+		if nl := s.linesOf(body); nl > lim.FuncLines {
+			s.add("ts.func.long", line, Warn,
+				fmt.Sprintf("%s is %d lines of code (limit %d)", name, nl, lim.FuncLines))
+		}
 	}
-	stmts := lim.FuncStatements > 0 && ncount(body) > lim.FuncStatements
-	if stmts {
-		s.add("ts.func.statements", line, Warn,
-			fmt.Sprintf("%s has %d statements (limit %d)", name, ncount(body), lim.FuncStatements))
+	if lim.FuncStatements > 0 {
+		if ns := ncount(body); ns > lim.FuncStatements {
+			s.add("ts.func.statements", line, Warn,
+				fmt.Sprintf("%s has %d statements (limit %d)", name, ns, lim.FuncStatements))
+		}
 	}
-	params := lim.Params > 0 && parmsCount(fn) > lim.Params
-	if params {
-		s.add("ts.func.params", line, Warn,
-			fmt.Sprintf("%s takes %d parameters (limit %d)", name, parmsCount(fn), lim.Params))
+	if lim.Params > 0 {
+		if np := parmsCount(fn); np > lim.Params {
+			s.add("ts.func.params", line, Warn,
+				fmt.Sprintf("%s takes %d parameters (limit %d)", name, np, lim.Params))
+		}
 	}
-	complex := lim.Complexity > 0 && CognitiveTS(body, s.f.Src) > lim.Complexity
-	if complex {
-		s.add("ts.func.complexity", line, Warn,
-			fmt.Sprintf("%s has cognitive complexity %d (limit %d)", name, CognitiveTS(body, s.f.Src), lim.Complexity))
+	if lim.Complexity > 0 {
+		if nc := CognitiveTS(body, s.f.Src); nc > lim.Complexity {
+			s.add("ts.func.complexity", line, Warn,
+				fmt.Sprintf("%s has cognitive complexity %d (limit %d)", name, nc, lim.Complexity))
+		}
 	}
 }
 
@@ -129,7 +133,10 @@ func (s *tsFile) linesOf(body *tree_sitter.Node) int {
 
 func (s *tsFile) markComments(n *tree_sitter.Node) {
 	if isComment(n.Kind()) {
-		s.comment[1+int(n.StartPosition().Row)] = true
+		start, end := int(n.StartPosition().Row), int(n.EndPosition().Row)
+		for l := start; l <= end; l++ {
+			s.comment[1+l] = true
+		}
 	}
 	for i := 0; i < ncount(n); i++ {
 		s.markComments(childAt(n, i))
