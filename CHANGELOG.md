@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] — 2026-09-09
+
+### Fixed
+- `go.leak.resource` now detects leaks in `-trimpath` release builds. The
+  flag strips `runtime.GOROOT()`, so the standard-library importer could not
+  resolve `os` and the shipped binary silently missed every leak. filet now
+  falls back to `$GOROOT` and `go env GOROOT`, and reports a visible
+  "could not run" finding only when no GOROOT can be found.
+
 ## [0.10.0] — 2026-09-09
 
 ### Added
