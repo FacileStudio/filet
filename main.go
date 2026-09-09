@@ -9,38 +9,7 @@ import (
 	"github.com/FacileStudio/filet/internal/filet"
 )
 
-var version = "0.7.1"
-
-const usage = `filet — style checker, code roaster and test runner
-
-COMMANDS
-
-  filet check   [flags] [path]   Run style, quality and architecture rules.
-  filet roast   [flags] [path]   Run the same checks, with punchlines.
-  filet docker  [flags] [path]   Roast every Dockerfile found under path.
-  filet test    [flags] [path]   Detect and run the project's test suites.
-  filet init    [flags] [path]   Write a commented filet.yml (-preset relaxed|epitech).
-  filet rules                    List every rule id.
-  filet version
-
-DROAST
-
-  droast is an alias for "filet docker".
-
-FLAGS
-
-  -format auto|text|line|json|sarif|github   Output format. Default: auto.
-  -fail   info|warn|error|never              Severity that makes the command fail.
-  -quiet                                     Print the summary only.
-
-EXAMPLES
-
-  filet check .
-  filet roast ./apps ./pkg
-  filet docker .
-  filet test ./apps/api
-  filet init -preset relaxed
-`
+var version = "0.7.3"
 
 func main() {
 	os.Exit(run())
@@ -52,7 +21,7 @@ func run() int {
 		args = append([]string{"docker"}, args...)
 	}
 	if len(args) == 0 {
-		fmt.Fprint(os.Stderr, usage)
+		filet.RenderUsage(os.Stderr)
 		return 2
 	}
 
@@ -77,10 +46,11 @@ func dispatch(cmd string, rest []string) int {
 		fmt.Println("filet " + version)
 		return 0
 	case "help", "--help", "-h":
-		fmt.Print(usage)
+		filet.RenderUsage(os.Stdout)
 		return 0
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command %q\n\n%s", cmd, usage)
+		fmt.Fprintf(os.Stderr, "unknown command %q\n\n", cmd)
+		filet.RenderUsage(os.Stderr)
 		return 2
 	}
 }
