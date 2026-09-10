@@ -42,6 +42,38 @@ func TestLSPFindingSeverityAndLine(t *testing.T) {
 	}
 }
 
+// TestLSPFindingCarriesColumnDocsAndTags pins the extra context servers send
+// that lspFinding folds in: the start character becomes the finding column, the
+// codeDescription href becomes a docs link, and tag 2 marks code deprecated.
+func TestLSPFindingCarriesColumnDocsAndTags(t *testing.T) {
+	f := SourceFile{Display: "a.go", Ext: ".go"}
+	fd := lspFinding(f, lspDiagnostic{
+		Range:           lspRange{Start: lspPosition{Line: 2, Character: 7}},
+		Severity:        1,
+		Code:            "E9",
+		Source:          "ts",
+		Message:         "bad",
+		Tags:            []int{2},
+		CodeDescription: &lspCodeDescription{Href: "https://example.com/e9"},
+	})
+	if fd.Column != 8 {
+		t.Errorf("character 7 should map to column 8, got %d", fd.Column)
+	}
+	if !strings.Contains(fd.Message, "(deprecated)") {
+		t.Errorf("deprecated tag not folded into message: %q", fd.Message)
+	}
+	if !strings.Contains(fd.Message, "[docs: https://example.com/e9]") {
+		t.Errorf("docs href not folded into message: %q", fd.Message)
+	}
+	clean := lspFinding(f, lspDiagnostic{Range: lspRange{Start: lspPosition{Line: 4, Character: 1}}, Severity: 3, Message: "hi"})
+	if clean.Column != 2 {
+		t.Errorf("plain diagnostic should still map column, got %d", clean.Column)
+	}
+	if clean.Message != "hi" {
+		t.Errorf("plain message must stay untouched, got %q", clean.Message)
+	}
+}
+
 // TestReadFrameContentLength proves the framing reads exactly N bytes past the
 // Content-Length header, the part a malformed server is likeliest to break.
 func TestReadFrameContentLength(t *testing.T) {
