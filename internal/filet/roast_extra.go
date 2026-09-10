@@ -1,5 +1,7 @@
 package filet
 
+import "maps"
+
 // punchlinesExtra holds the punchlines for the newer rules, split out of
 // roast.go to keep that data-heavy map under the per-file line limit.
 var punchlinesExtra = map[string][]string{
@@ -34,11 +36,7 @@ var punchlinesExtra = map[string][]string{
 // mergePunchlines combines two rule-to-punchline maps into one lookup.
 func mergePunchlines(a, b map[string][]string) map[string][]string {
 	out := make(map[string][]string, len(a)+len(b))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		out[k] = v
-	}
+	maps.Copy(out, a)
+	maps.Copy(out, b)
 	return out
 }

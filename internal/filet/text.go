@@ -91,10 +91,11 @@ func advance(c, quote byte, escaped bool) (byte, bool) {
 
 // codeOnly drops a trailing line comment so only real code is brace-counted.
 func codeOnly(stripped string) string {
-	if i := strings.Index(stripped, "//"); i >= 0 {
-		return stripped[:i]
+	before, _, ok := strings.Cut(stripped, "//")
+	if !ok {
+		return stripped
 	}
-	return stripped
+	return before
 }
 
 // commentText returns the prose of a trailing line comment, without its marker.
@@ -103,9 +104,9 @@ func commentText(ext, stripped string) string {
 	if braceless[ext] {
 		marker = "#"
 	}
-	i := strings.Index(stripped, marker)
-	if i < 0 {
+	_, rest, ok := strings.Cut(stripped, marker)
+	if !ok {
 		return ""
 	}
-	return strings.TrimLeft(stripped[i+len(marker):], " \t*")
+	return strings.TrimLeft(rest, " \t*")
 }

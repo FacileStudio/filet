@@ -79,25 +79,20 @@ func (s *tsFile) function(fn *tree_sitter.Node) {
 		return
 	}
 	name, _ := fnName(fn, s.f.Src)
-	lim, line := s.cfg.Limits, 1+int(fn.StartPosition().Row)
+	lim := s.cfg.Limits
+	line := 1 + int(fn.StartPosition().Row)
 
-	if lim.FuncLines > 0 {
-		if nl := s.linesOf(body); nl > lim.FuncLines {
-			s.add("ts.func.long", line, Warn,
-				fmt.Sprintf("%s is %d lines of code (limit %d)", name, nl, lim.FuncLines))
-		}
+	if lim.FuncLines > 0 && s.linesOf(body) > lim.FuncLines {
+		s.add("ts.func.long", line, Warn,
+			fmt.Sprintf("%s is %d lines of code (limit %d)", name, s.linesOf(body), lim.FuncLines))
 	}
-	if lim.FuncStatements > 0 {
-		if ns := ncount(body); ns > lim.FuncStatements {
-			s.add("ts.func.statements", line, Warn,
-				fmt.Sprintf("%s has %d statements (limit %d)", name, ns, lim.FuncStatements))
-		}
+	if lim.FuncStatements > 0 && ncount(body) > lim.FuncStatements {
+		s.add("ts.func.statements", line, Warn,
+			fmt.Sprintf("%s has %d statements (limit %d)", name, ncount(body), lim.FuncStatements))
 	}
-	if lim.Params > 0 {
-		if np := parmsCount(fn); np > lim.Params {
-			s.add("ts.func.params", line, Warn,
-				fmt.Sprintf("%s takes %d parameters (limit %d)", name, np, lim.Params))
-		}
+	if lim.Params > 0 && parmsCount(fn) > lim.Params {
+		s.add("ts.func.params", line, Warn,
+			fmt.Sprintf("%s takes %d parameters (limit %d)", name, parmsCount(fn), lim.Params))
 	}
 	if lim.Complexity > 0 {
 		if nc := CognitiveTS(body, s.f.Src); nc > lim.Complexity {

@@ -122,3 +122,18 @@ func groupNames(findings []Finding) []string {
 	sort.Strings(names)
 	return names
 }
+
+// groupWidths measures the longest position and rule strings across a group, so
+// renderers can line findings up in a columnar layout.
+func groupWidths(findings []Finding) (int, int) {
+	at, rule := 0, 0
+	for _, f := range findings {
+		if len(position(f)) > at {
+			at = len(position(f))
+		}
+		if len(f.Rule) > rule {
+			rule = len(f.Rule)
+		}
+	}
+	return at, rule
+}

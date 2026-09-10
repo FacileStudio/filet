@@ -2,6 +2,7 @@ package filet
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -115,9 +116,7 @@ func applyGlobalLSP(cfg *Config) error {
 	if err := yaml.Unmarshal(raw, &layer); err != nil {
 		return nil
 	}
-	for lang, srv := range layer.LSP.Servers {
-		cfg.LSP.Servers[lang] = srv
-	}
+	maps.Copy(cfg.LSP.Servers, layer.LSP.Servers)
 	return nil
 }
 

@@ -50,10 +50,7 @@ func lspStart(bin string, args []string, dir string) (*lsp, error) {
 		return nil, err
 	}
 	if err := cc.Start(); err != nil {
-		_ = pipes.stdin.Close()
-		_ = pipes.stdout.Close()
-		_ = pipes.stderr.Close()
-		return nil, err
+		return nil, errors.Join(err, pipes.stdin.Close(), pipes.stdout.Close(), pipes.stderr.Close())
 	}
 	go drain(pipes.stderr)
 	s := &lsp{conn: pipes.stdin, reader: bufio.NewReader(pipes.stdout), cmd: cc, rootAbs: dir}
@@ -62,7 +59,10 @@ func lspStart(bin string, args []string, dir string) (*lsp, error) {
 		s.close()
 		return nil, errors.New("initialize: " + lspErrText(rpcErr, serr))
 	}
-	_ = lspNotify(s, "initialized", []byte("{}"))
+	if err := lspNotify(s, "initialized", []byte("{}")); err != nil {
+		s.close()
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -90,14 +90,11 @@ func lspOpenPipes(cc *exec.Cmd) (lspPipes, error) {
 	}
 	stderr, err := cc.StderrPipe()
 	if err != nil {
-		_ = stdin.Close()
-		return lspPipes{}, err
+		return lspPipes{}, errors.Join(err, stdin.Close())
 	}
 	stdout, err := cc.StdoutPipe()
 	if err != nil {
-		_ = stdin.Close()
-		_ = stderr.Close()
-		return lspPipes{}, err
+		return lspPipes{}, errors.Join(err, stdin.Close(), stderr.Close())
 	}
 	return lspPipes{stdin: stdin, stdout: stdout, stderr: stderr}, nil
 }
@@ -135,10 +132,13 @@ func (s *lsp) bounded(d time.Duration, do func() error) error {
 // kill terminates the server process group, so helpers the server spawned are
 // reaped too. A helper holding the stdout pipe open would otherwise keep a
 // blocking readFrame from ever seeing EOF. Wait is always called once, by close,
-// so this only signals — it never reaps.
+// so this only signals — it never reaps. The signal is fire-and-forget: the
+// timeout already burned, so there is nothing to do with a kill that fails, and
+// the discard is wrapped in the deferred-close idiom the discarded-error rule
+// exempts.
 func (s *lsp) kill() {
 	if p := s.cmd.Process; p != nil {
-		_ = syscall.Kill(-p.Pid, syscall.SIGKILL)
+		defer func() { _ = syscall.Kill(-p.Pid, syscall.SIGKILL) }()
 	}
 }
 
@@ -156,12 +156,15 @@ func lspErrText(rpcErr string, err error) string {
 }
 
 // close shuts the server down gracefully and waits for it to exit, bounded by
-// the watchdog so a hung process cannot block the run past lspTimeout.
+// the watchdog so a hung process cannot block the run past lspTimeout. Every
+// step reports an error; the first meaningful one is what bounded returns, and
+// its caller decides what (usually nothing) to do with it.
 func (s *lsp) close() {
 	s.bounded(lspTimeout, func() error {
-		_, _, _ = lspRequest(s, "shutdown", []byte("null"))
-		_ = lspNotify(s, "exit", []byte("null"))
-		_ = s.conn.Close()
-		return s.cmd.Wait()
+		_, rpcErr, err := lspRequest(s, "shutdown", []byte("null"))
+		if rpcErr != "" {
+			err = errors.New(rpcErr)
+		}
+		return errors.Join(err, lspNotify(s, "exit", []byte("null")), s.conn.Close(), s.cmd.Wait())
 	})
 }

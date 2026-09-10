@@ -26,8 +26,7 @@ func (g *goFile) getNamedType(t types.Type) *types.Named {
 
 // hasCloseMethod checks if a named type has a Close method that returns error.
 func (g *goFile) hasCloseMethod(named *types.Named) bool {
-	for i := 0; i < named.NumMethods(); i++ {
-		m := named.Method(i)
+	for m := range named.Methods() {
 		if m.Name() != "Close" {
 			continue
 		}

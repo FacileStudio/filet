@@ -15,10 +15,7 @@ import (
 // token on the line.
 func WriteLines(w io.Writer, r Report) error {
 	for _, f := range r.Findings {
-		column := f.Column
-		if column < 1 {
-			column = 1
-		}
+		column := max(f.Column, 1)
 		if _, err := fmt.Fprintf(w, "%s:%d:%d: %s: %s%s [%s]\n",
 			f.File, f.Line, column, f.Severity, f.Message, docsSuffix(f), f.Rule); err != nil {
 			return err

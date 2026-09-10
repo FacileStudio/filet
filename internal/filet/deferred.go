@@ -24,9 +24,10 @@ func (g *goFile) findClosedVars(body *ast.BlockStmt) map[string]bool {
 	return closed
 }
 
-// closeReceiver returns the root identifier of a method receiver chain: "file"
-// for file.Close() and "resp" for resp.Body.Close(). It returns "" when the
-// receiver starts with a call (f().Close()), because no owned variable is there.
+// closeReceiver returns the root identifier of a method receiver chain: the
+// name "file" for a close on file and "resp" for a close on a response body. It
+// returns "" when the receiver begins with a call, because no owned variable
+// is there.
 func closeReceiver(x ast.Expr) string {
 	for {
 		switch t := x.(type) {

@@ -8,7 +8,6 @@ import (
 	"go/types"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
 	"sync"
 )
@@ -90,21 +89,21 @@ func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Inf
 }
 
 var goRootFn = sync.OnceValue(func() string {
-	g := runtime.GOROOT()
-	if g == "" {
-		g = os.Getenv("GOROOT")
-	}
-	if g == "" {
-		if out, err := exec.Command("go", "env", "GOROOT").Output(); err == nil {
-			g = strings.TrimSpace(string(out))
+	if bin, err := exec.LookPath("go"); err == nil {
+		if out, err := exec.Command(bin, "env", "GOROOT").Output(); err == nil {
+			if g := strings.TrimSpace(string(out)); g != "" {
+				return g
+			}
 		}
 	}
-	return g
+	return os.Getenv("GOROOT")
 })
 
-// goRoot returns a GOROOT the standard-library importer can use. runtime.GOROOT
-// is the usual source, but -trimpath ships it as "": the fallbacks are the
-// GOROOT environment variable, then `go env GOROOT`. An empty result means the
-// stdlib cannot be resolved and the leak rule degrades to its visible
-// "could not run" finding instead of silently missing leaks.
+// goRoot returns a GOROOT the standard-library importer can use. It is derived
+// from `go env GOROOT`, the one answer that stays correct when a snapshot or
+// -trimpath binary is copied to a machine where runtime.GOROOT no longer points
+// at the toolchain it was built with. The GOROOT environment variable is the
+// fallback when no go binary is on the path. An empty result means the stdlib
+// cannot be resolved and the leak rule degrades to its visible "could not run"
+// finding instead of silently missing leaks.
 func goRoot() string { return goRootFn() }

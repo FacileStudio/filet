@@ -72,6 +72,13 @@ func TestLSPFindingCarriesColumnDocsAndTags(t *testing.T) {
 	if !strings.Contains(docsSuffix(fd), "https://example.com/e9") {
 		t.Errorf("docsSuffix should surface the link: %q", docsSuffix(fd))
 	}
+}
+
+// TestLSPFindingPlainDiagnosticDefaults pins that a diagnostic without columns,
+// tags or a code description maps its start character to a column and keeps its
+// message and Docs exactly as sent.
+func TestLSPFindingPlainDiagnosticDefaults(t *testing.T) {
+	f := SourceFile{Display: "a.go", Ext: ".go"}
 	clean := lspFinding(f, lspDiagnostic{Range: lspRange{Start: lspPosition{Line: 4, Character: 1}}, Severity: 3, Message: "hi"})
 	if clean.Column != 2 {
 		t.Errorf("plain diagnostic should still map column, got %d", clean.Column)
@@ -101,7 +108,8 @@ func TestReadFrameContentLength(t *testing.T) {
 
 // TestCheckLSPDegradesGracefully proves the never-silent contract without any
 // real server: a missing binary is one lsp.unavailable info finding, obeying
-// both lsp.fail promotion and the disabled list.
+// both lsp.fail promotion and the disabled list. The scripted fake servers live
+// in lsp_fixtures.go.
 func TestCheckLSPDegradesGracefully(t *testing.T) {
 	mk := func(cfg *Config) *Config {
 		if cfg.LSP.Servers == nil {
@@ -135,46 +143,6 @@ func TestCheckLSPDegradesGracefully(t *testing.T) {
 		t.Fatalf("disabled lsp.unavailable should be hidden, got %+v", out)
 	}
 }
-
-const fakeFullServer = `#!/usr/bin/env bash
-send() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
-LEN=0
-while IFS= read -r line; do
-  line="${line%$'\r'}"
-  if [[ -z "$line" ]]; then
-    IFS= read -r -N "$LEN" body
-    case "$body" in
-      *initialize*) send '{"jsonrpc":"2.0","id":1,"result":{"capabilities":{"textDocumentSync":1}}}' ;;
-      *shutdown*) send '{"jsonrpc":"2.0","id":2,"result":null}' ;;
-      *didOpen*)
-        uri=$(printf '%s' "$body" | sed -n 's/.*"uri":"\([^"]*\)".*/\1/p' | head -1)
-        send "{\"jsonrpc\":\"2.0\",\"method\":\"textDocument/publishDiagnostics\",\"params\":{\"uri\":\"$uri\",\"diagnostics\":[{\"range\":{\"start\":{\"line\":2}},\"severity\":1,\"message\":\"boom\"}]}}"
-        ;;
-    esac
-    LEN=0
-  else
-    [[ "$line" =~ ^Content-Length:[[:space:]]*([0-9]+)$ ]] && LEN="${BASH_REMATCH[1]}"
-  fi
-done
-`
-
-const fakeSilentServer = `#!/usr/bin/env bash
-send() { printf 'Content-Length: %d\r\n\r\n%s' "${#1}" "$1"; }
-LEN=0
-while IFS= read -r line; do
-  line="${line%$'\r'}"
-  if [[ -z "$line" ]]; then
-    IFS= read -r -N "$LEN" body
-    case "$body" in
-      *initialize*) send '{"jsonrpc":"2.0","id":1,"result":{"capabilities":{}}}' ;;
-      *shutdown*) send '{"jsonrpc":"2.0","id":2,"result":null}' ;;
-    esac
-    LEN=0
-  else
-    [[ "$line" =~ ^Content-Length:[[:space:]]*([0-9]+)$ ]] && LEN="${BASH_REMATCH[1]}"
-  fi
-done
-`
 
 func fakeServer(t *testing.T, script string) (bin, root string) {
 	t.Helper()

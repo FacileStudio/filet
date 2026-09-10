@@ -50,15 +50,7 @@ func WriteTextLipgloss(w io.Writer, r Report, opts TextOptions) {
 }
 
 func writeGroupLipgloss(w io.Writer, ctx lipglossCtx, findings []Finding, roast bool) {
-	at, rule := 0, 0
-	for _, f := range findings {
-		if len(position(f)) > at {
-			at = len(position(f))
-		}
-		if len(f.Rule) > rule {
-			rule = len(f.Rule)
-		}
-	}
+	at, rule := groupWidths(findings)
 	for _, f := range findings {
 		pos := padLeft(position(f), at)
 		body := f.Message

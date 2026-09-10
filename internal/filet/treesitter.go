@@ -25,9 +25,9 @@ var tsGrammars = []tsGrammar{
 
 // GrammarFor returns the registered grammar for ext, and whether one was found.
 func GrammarFor(ext string) (tsGrammar, bool) {
-	for i := 0; i < len(tsGrammars); i++ {
-		if tsGrammars[i].Ext == ext {
-			return tsGrammars[i], true
+	for _, g := range tsGrammars {
+		if g.Ext == ext {
+			return g, true
 		}
 	}
 	return tsGrammar{}, false
