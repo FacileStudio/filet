@@ -156,7 +156,7 @@ func printClean(report filet.CleanReport, dryRun bool) int {
 	}
 	fmt.Printf("%d %s, %d fixes (%s)\n",
 		report.Changed, verb,
-		report.Stats.CommentedCode+report.Stats.InlineComment+report.Stats.TrailingSpace+report.Stats.Formatting,
+		report.Stats.CommentedCode+report.Stats.InlineComment+report.Stats.InBodyComment+report.Stats.TrailingSpace+report.Stats.Formatting,
 		cleanDetail(report.Stats))
 	return 0
 }
@@ -168,6 +168,9 @@ func cleanDetail(s filet.CleanStats) string {
 	}
 	if s.InlineComment > 0 {
 		parts = append(parts, fmt.Sprintf("%d inline-comment", s.InlineComment))
+	}
+	if s.InBodyComment > 0 {
+		parts = append(parts, fmt.Sprintf("%d in-body", s.InBodyComment))
 	}
 	if s.TrailingSpace > 0 {
 		parts = append(parts, fmt.Sprintf("%d trailing-space", s.TrailingSpace))

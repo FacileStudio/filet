@@ -13,6 +13,7 @@ import (
 type CleanStats struct {
 	CommentedCode int
 	InlineComment int
+	InBodyComment int
 	TrailingSpace int
 	Formatting    int
 }
@@ -40,6 +41,7 @@ type CleanReport struct {
 //
 //   - gen.commented.code: a whole line of commented-out code is dropped.
 //   - gen.comment.inline: a comment trailing real code is stripped.
+//   - go.comment.inbody: a comment inside a function body is dropped.
 //   - gen.trailing.space: trailing whitespace is removed.
 //
 // When format is on the file is then passed through the language's own
@@ -48,20 +50,28 @@ type CleanReport struct {
 // a file go/format cannot parse is left with its line edits applied, never
 // failing the run.
 //
-// A full-line prose comment, a file header, or a directive (//nolint:, //go:)
-// is left alone: the inline rule only fires on a comment that follows code, and
-// commented-out code is the only whole line clean deletes. Generated files are
-// skipped, matching CheckGeneric.
+// A full-line prose comment outside a function body, a file header, or a
+// directive (//nolint:, //go:) is left alone: the body rule only fires on a
+// comment inside a function, the inline rule only fires on a comment that
+// follows code, and commented-out code is only deleted when it is also inside a
+// body. Generated files are skipped, matching CheckGeneric.
 func CleanFile(cfg *Config, f SourceFile) CleanFileResult {
 	res := CleanFileResult{Path: f.Path}
 	if f.IsGenerated() {
 		res.Lines = f.Lines
 		return res
 	}
+	drop := inBodyCommentLines(cfg, f)
 	st := lineState{}
-	for _, raw := range f.Lines {
-		line, drop, next := cleanLine(cfg, f, raw, st, &res.Stats)
-		if drop {
+	for i, raw := range f.Lines {
+		if drop[i+1] {
+			_, next := stripLine(raw, st)
+			st = next
+			res.Stats.InBodyComment++
+			continue
+		}
+		line, dropLine, next := cleanLine(cfg, f, raw, st, &res.Stats)
+		if dropLine {
 			st = next
 			continue
 		}
@@ -191,6 +201,7 @@ func applyChanged(r *CleanReport, res CleanFileResult, src []byte, dryRun bool) 
 	r.Changed++
 	r.Stats.CommentedCode += res.Stats.CommentedCode
 	r.Stats.InlineComment += res.Stats.InlineComment
+	r.Stats.InBodyComment += res.Stats.InBodyComment
 	r.Stats.TrailingSpace += res.Stats.TrailingSpace
 	r.Stats.Formatting += res.Stats.Formatting
 	if dryRun {

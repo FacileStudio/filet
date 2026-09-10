@@ -48,14 +48,20 @@ func TestCleanStripsTrailingInlineComment(t *testing.T) {
 	}
 }
 
-func TestCleanLeavesHeaderAndStandaloneComment(t *testing.T) {
-	f := cleanSource(t, "clean.go", "// LICENSE\n// something important\n\npackage main\n\nfunc main() {\n\t// keep me\n\tx := 1\n}\n")
+func TestCleanLeavesOutsideBodyComments(t *testing.T) {
+	f := cleanSource(t, "clean.go", "// LICENSE\n// something important\n\npackage main\n\nfunc main() {\n\t// drop me\n\tx := 1\n}\n")
 	res := CleanFile(cleanCfg(), f)
 	got := strings.Join(res.Lines, "\n")
-	for _, keep := range []string{"// LICENSE", "// something important", "// keep me"} {
+	for _, keep := range []string{"// LICENSE", "// something important"} {
 		if !strings.Contains(got, keep) {
-			t.Errorf("header/standalone comment lost: %s\n%s", keep, got)
+			t.Errorf("header comment lost: %s\n%s", keep, got)
 		}
+	}
+	if strings.Contains(got, "// drop me") {
+		t.Fatalf("in-body comment survived:\n%s", got)
+	}
+	if res.Stats.InBodyComment != 1 {
+		t.Fatalf("expected one in-body fix, got %d", res.Stats.InBodyComment)
 	}
 }
 
@@ -84,7 +90,7 @@ func TestCleanDoesNotCorruptStringLiteral(t *testing.T) {
 }
 
 func TestCleanDropsCommentedOutCode(t *testing.T) {
-	f := cleanSource(t, "clean.go", "func f() {\n\t// const x = 5\n\ty := 2\n}\n")
+	f := cleanSource(t, "clean.go", "// const x = 5\nfunc f() {\n\ty := 2\n}\n")
 	res := CleanFile(cleanCfg(), f)
 	got := strings.Join(res.Lines, "\n")
 	if strings.Contains(got, "const x = 5") {
@@ -96,14 +102,8 @@ func TestCleanDropsCommentedOutCode(t *testing.T) {
 	if res.Stats.CommentedCode != 1 {
 		t.Fatalf("expected one commented-code fix, got %d", res.Stats.CommentedCode)
 	}
-}
-
-func TestCleanKeepsSentenceComment(t *testing.T) {
-	f := cleanSource(t, "clean.go", "func f() {\n\t// this does a thing.\n\tx := 1\n}\n")
-	res := CleanFile(cleanCfg(), f)
-	got := strings.Join(res.Lines, "\n")
-	if !strings.Contains(got, "this does a thing.") {
-		t.Fatalf("sentence comment was dropped:\n%s", got)
+	if res.Stats.InBodyComment != 0 {
+		t.Fatalf("top-level commented code should not count as in-body, got %d", res.Stats.InBodyComment)
 	}
 }
 
