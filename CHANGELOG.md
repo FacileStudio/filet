@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-09-10
+
+### Added
+- `lsp.*` findings now carry the exact column of each diagnostic, so `file:line:col`
+  appears in every output format instead of line-only.
+- LSP messages fold in two more fields servers already sent but filet dropped:
+  the `codeDescription` docs link (TypeScript, clangd, Pyright set it), and the
+  `deprecated` / `unnecessary` tags. Both appear only when a server provides them,
+  so plain diagnostics read exactly as before.
+
 ## [0.10.1] — 2026-09-09
 
 ### Fixed
@@ -142,7 +152,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Output built around a parseable contract.
 - MIT license and a CI workflow that runs filet against filet.
 
-[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/FacileStudio/filet/compare/v0.10.1...v0.11.0
+[0.10.1]: https://github.com/FacileStudio/filet/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/FacileStudio/filet/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/FacileStudio/filet/compare/v0.7.1...v0.9.0
 [0.7.1]: https://github.com/FacileStudio/filet/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/FacileStudio/filet/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/FacileStudio/filet/compare/v0.5.0...v0.6.0
