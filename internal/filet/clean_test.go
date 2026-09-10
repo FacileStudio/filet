@@ -135,7 +135,7 @@ func TestCleanFormatsGoSource(t *testing.T) {
 
 func TestCleanFormatOffLeavesCodeAlone(t *testing.T) {
 	cfg := cleanCfg()
-	cfg.Format = false
+	cfg.Style.Format = false
 	f := cleanSource(t, "clean.go", "package main\nfunc main(){\n\tx:=1\n}\n")
 	res := CleanFile(cfg, f)
 	if strings.Contains(strings.Join(res.Lines, "\n"), "x := 1") {

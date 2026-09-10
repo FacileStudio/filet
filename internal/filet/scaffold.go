@@ -47,6 +47,7 @@ style:
   banGlobalMutable: %t    # Must…/Once… initialised vars are treated as immutable singletons
   banInit: %t
   banTrailingSpace: %t
+  format: %t              # filet clean reformats Go source through the language formatter
 
 # treesitter parses non-Go files (.rs, and any grammar filet vendors) to anchor
 # shape rules on real syntax instead of brace counting. On by default; each
@@ -67,8 +68,6 @@ treesitter:
 disabled: []              # e.g. [gen.line.long, go.doc.missing]
 
 failOn: %s                # info | warn | error | never
-
-format: %t                # filet clean rewrites Go through the language formatter
 `
 
 // Scaffold writes a commented starter config at path, seeded from the named preset.
@@ -87,7 +86,7 @@ func Scaffold(path, preset string) error {
 		l.FileLines, l.FuncsPerFile, l.FuncLines, l.FuncStatements, l.LineLength, l.Params, l.Returns,
 		l.Nesting, l.Complexity, l.StructFields, l.InterfaceMethods,
 		s.BanInlineComments, s.BanTODO, s.RequireDocComments, s.BanGlobalMutable, s.BanInit, s.BanTrailingSpace,
-		cfg.FailOn, cfg.Format)
+		s.Format, cfg.FailOn)
 
 	if preset != "" && preset != "default" {
 		body = strings.Replace(body, "# preset: "+preset, "preset: "+preset, 1)

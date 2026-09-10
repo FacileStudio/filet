@@ -78,39 +78,27 @@ func CleanFile(cfg *Config, f SourceFile) CleanFileResult {
 // different output. A parse failure leaves the line edits in place; formatting
 // is a best-effort layer, never a reason to fail the whole run.
 func formatLines(cfg *Config, f SourceFile, res *CleanFileResult) {
-	if !cfg.Format || f.Ext != ".go" {
+	if !cfg.Style.Format || f.Ext != ".go" {
 		return
 	}
-	before := trimTrailingEmpty(res.Lines)
-	formatted, err := format.Source(cleanBytes(before))
+	before := res.Lines
+	if len(before) > 0 && before[len(before)-1] == "" {
+		before = before[:len(before)-1]
+	}
+	formatted, err := format.Source([]byte(strings.Join(before, "\n") + "\n"))
 	if err != nil {
 		return
 	}
-	after := trimTrailingEmpty(strings.Split(string(formatted), "\n"))
+	after := strings.Split(string(formatted), "\n")
+	if len(after) > 0 && after[len(after)-1] == "" {
+		after = after[:len(after)-1]
+	}
 	if slices.Equal(after, before) {
 		return
 	}
 	res.Lines = after
 	res.Changed = true
 	res.Stats.Formatting++
-}
-
-// trimTrailingEmpty drops the single empty element that a trailing newline
-// leaves in a split, so the edited and formatted sides compare on equal terms.
-func trimTrailingEmpty(lines []string) []string {
-	if len(lines) > 0 && lines[len(lines)-1] == "" {
-		return lines[:len(lines)-1]
-	}
-	return lines
-}
-
-// cleanBytes joins cleaned lines back into the byte form a formatter expects,
-// with a trailing newline like a real source file.
-func cleanBytes(lines []string) []byte {
-	if len(lines) == 0 {
-		return []byte{}
-	}
-	return []byte(strings.Join(lines, "\n") + "\n")
 }
 
 // cleanLine resolves the auto-fixable findings on one raw line and returns the

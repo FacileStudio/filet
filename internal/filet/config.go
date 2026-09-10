@@ -78,6 +78,7 @@ type Style struct {
 	BanGlobalMutable   bool `yaml:"banGlobalMutable"`
 	BanInit            bool `yaml:"banInit"`
 	BanTrailingSpace   bool `yaml:"banTrailingSpace"`
+	Format             bool `yaml:"format"`
 }
 
 // Config is the full contents of filet.yml.
@@ -88,7 +89,6 @@ type Config struct {
 	Limits       Limits       `yaml:"limits"`
 	Architecture Architecture `yaml:"architecture"`
 	Style        Style        `yaml:"style"`
-	Format       bool         `yaml:"format"`
 	Treesitter   Treesitter   `yaml:"treesitter"`
 	LSP          LSP          `yaml:"lsp"`
 	Disabled     []string     `yaml:"disabled"`
@@ -113,10 +113,9 @@ func DefaultConfig() *Config {
 		Limits:       defaultLimits(),
 		Architecture: Architecture{},
 		Style:        defaultStyle(),
-		Format:       true,
 		Treesitter:   Treesitter{Enabled: true},
 		LSP:          defaultLSP(),
-		FailOn:       "error",
+		FailOn:       "info",
 	}
 }
 
@@ -144,6 +143,7 @@ func defaultStyle() Style {
 		BanTODO:            true,
 		BanGlobalMutable:   true,
 		BanInit:            true,
+		Format:             true,
 	}
 }
 
