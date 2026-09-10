@@ -78,6 +78,7 @@ func usageSections() []usageSection {
 		usageSection{title: "Commands", rows: []usageRow{
 			usageRow{cmd: "filet check", detail: "[flags] [path]", desc: "Run style, quality and architecture rules."},
 			usageRow{cmd: "filet roast", detail: "[flags] [path]", desc: "Run the same checks, with punchlines."},
+			usageRow{cmd: "filet clean", detail: "[-dry-run] [path]", desc: "Apply the auto-fixable checks in place."},
 			usageRow{cmd: "filet docker", detail: "[flags] [path]", desc: "Roast every Dockerfile found under path."},
 			usageRow{cmd: "filet test", detail: "[flags] [path]", desc: "Detect and run the project's test suites."},
 			usageRow{cmd: "filet init", detail: "[flags] [path]", desc: "Scaffold filet.yml (-preset relaxed|epitech)."},
@@ -95,6 +96,7 @@ func usageSections() []usageSection {
 		usageSection{title: "Examples", rows: []usageRow{
 			usageRow{cmd: "filet check .", detail: "", desc: ""},
 			usageRow{cmd: "filet roast ./apps ./pkg", detail: "", desc: ""},
+			usageRow{cmd: "filet clean -dry-run .", detail: "", desc: ""},
 			usageRow{cmd: "filet docker .", detail: "", desc: ""},
 			usageRow{cmd: "filet test ./apps/api", detail: "", desc: ""},
 			usageRow{cmd: "filet init -preset relaxed", detail: "", desc: ""},

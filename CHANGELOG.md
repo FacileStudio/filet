@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `filet clean [path]` applies the auto-fixable checks in place: trailing
+  whitespace, trailing line comments, and whole lines of commented-out code.
+  Each fix is gated on the same config toggle that gates its check; file
+  headers, standalone prose comments and tool directives are left alone. Pass
+  `-dry-run` to preview the edits without writing. Covers the mechanical subset
+  that `balai` used to handle, so comment cleanup now lives in the checker that
+  reports it.
+
 ## [0.11.2] — 2026-09-10
 
 ### Fixed

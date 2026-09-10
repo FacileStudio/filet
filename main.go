@@ -34,6 +34,8 @@ func dispatch(cmd string, rest []string) int {
 		return analyze("check", rest, false)
 	case "roast":
 		return analyze("roast", rest, true)
+	case "clean":
+		return clean(rest)
 	case "docker":
 		return docker(rest)
 	case "test":
