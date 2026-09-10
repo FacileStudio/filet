@@ -19,8 +19,8 @@ func WriteLines(w io.Writer, r Report) error {
 		if column < 1 {
 			column = 1
 		}
-		if _, err := fmt.Fprintf(w, "%s:%d:%d: %s: %s [%s]\n",
-			f.File, f.Line, column, f.Severity, f.Message, f.Rule); err != nil {
+		if _, err := fmt.Fprintf(w, "%s:%d:%d: %s: %s%s [%s]\n",
+			f.File, f.Line, column, f.Severity, f.Message, docsSuffix(f), f.Rule); err != nil {
 			return err
 		}
 	}

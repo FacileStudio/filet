@@ -55,6 +55,7 @@ type Finding struct {
 	Line     int      `json:"line"`
 	Column   int      `json:"column,omitempty"`
 	Message  string   `json:"message"`
+	Docs     string   `json:"docs,omitempty"`
 	Severity Severity `json:"-"`
 	Level    string   `json:"severity"`
 	Roast    string   `json:"roast,omitempty"`
@@ -62,6 +63,16 @@ type Finding struct {
 
 func newFinding(rule, file string, line int, sev Severity, msg string) Finding {
 	return Finding{Rule: rule, File: file, Line: line, Severity: sev, Level: sev.String(), Message: msg}
+}
+
+// docsSuffix returns the "docs: <url>" tail for a finding that carries a docs
+// link, or "" otherwise. Colour renderers style a finding's Docs field directly;
+// flat renderers (line, SARIF, GitHub) append this so the link is not lost.
+func docsSuffix(f Finding) string {
+	if f.Docs == "" {
+		return ""
+	}
+	return " docs: " + f.Docs
 }
 
 // SortFindings orders findings by file, then line, then rule so output is stable.

@@ -33,9 +33,10 @@ type lspCodeDescription struct {
 
 // lspFinding maps one server diagnostic to a filet finding. LSP severities are
 // 1=error, 2=warning, 3=info and 4=hint; the finding's rule is the mapped
-// lsp.error/lsp.warn/lsp.info class. The message carries source, code, and —
-// when the server offers them — the deprecated/unnecessary tag and the docs
-// link; the finding's column is the diagnostic's start character.
+// lsp.error/lsp.warn/lsp.info class. The message carries source and code with
+// no decorative brackets, plus the deprecated/unnecessary tag when the server
+// flags one. A codeDescription href becomes the finding's Docs link so a
+// terminal renderer can style it muted instead of burying it in the message.
 func lspFinding(f SourceFile, d lspDiagnostic) Finding {
 	sev := Info
 	if d.Severity == 2 {
@@ -56,14 +57,14 @@ func lspFinding(f SourceFile, d lspDiagnostic) Finding {
 		msg = d.Source + ": " + msg
 	}
 	if code := codeText(d.Code); code != "" {
-		msg = "[" + code + "] " + msg
+		msg = code + " " + msg
 	}
 	msg = appendTagMarkers(msg, d.Tags)
-	if d.CodeDescription != nil && d.CodeDescription.Href != "" {
-		msg = msg + " [docs: " + d.CodeDescription.Href + "]"
-	}
 	fd := newFinding(rule, f.Display, d.Range.Start.Line+1, sev, msg)
 	fd.Column = d.Range.Start.Character + 1
+	if d.CodeDescription != nil && d.CodeDescription.Href != "" {
+		fd.Docs = d.CodeDescription.Href
+	}
 	return fd
 }
 

@@ -50,12 +50,16 @@ func writeGroup(w io.Writer, p paintFn, g Glyphs, findings []Finding, roast bool
 	}
 	for _, f := range findings {
 		colour := severityColor(f.Severity)
-		fmt.Fprintf(w, "  %s  %s %s  %s  %s\n",
+		docs := ""
+		if f.Docs != "" {
+			docs = p(dim, docsSuffix(f))
+		}
+		fmt.Fprintf(w, "  %s  %s %s  %s  %s%s\n",
 			p(grey, padLeft(position(f), at)),
 			p(colour, mark(g, f.Severity)),
 			p(colour, pad(f.Severity.String(), 5)),
 			p(dim, pad(f.Rule, rule)),
-			f.Message)
+			f.Message, docs)
 		if roast && f.Roast != "" {
 			fmt.Fprintf(w, "  %s    %s\n", strings.Repeat(" ", at), p(dim, g.Arrow+" "+f.Roast))
 		}

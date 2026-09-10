@@ -133,7 +133,7 @@ func sarifResults(findings []Finding, fired []string) []sarifResult {
 			RuleID:    f.Rule,
 			RuleIndex: slices.Index(fired, f.Rule),
 			Level:     sarifLevel(f.Severity),
-			Message:   sarifText{Text: f.Message},
+			Message:   sarifText{Text: f.Message + docsSuffix(f)},
 			Locations: []sarifLocation{sarifLocationOf(f)},
 		})
 	}

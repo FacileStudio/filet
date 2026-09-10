@@ -61,6 +61,10 @@ func writeGroupLipgloss(w io.Writer, ctx lipglossCtx, findings []Finding, roast 
 	}
 	for _, f := range findings {
 		pos := padLeft(position(f), at)
+		body := f.Message
+		if f.Docs != "" {
+			body = body + dimStyle(ctx.renderer).Render(docsSuffix(f))
+		}
 		line := lipgloss.JoinHorizontal(lipgloss.Top,
 			dimStyle(ctx.renderer).Render(pos),
 			"  ",
@@ -70,7 +74,7 @@ func writeGroupLipgloss(w io.Writer, ctx lipglossCtx, findings []Finding, roast 
 			"  ",
 			dimStyle(ctx.renderer).Render(pad(f.Rule, rule)),
 			"  ",
-			f.Message,
+			body,
 		)
 		fmt.Fprintln(w, "  "+line)
 		if roast && f.Roast != "" {

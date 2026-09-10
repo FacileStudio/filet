@@ -33,7 +33,7 @@ func TestLSPFindingSeverityAndLine(t *testing.T) {
 		if found.Line != c.line {
 			t.Errorf("severity %d: got line %d want 1", c.sev, found.Line)
 		}
-		if !strings.Contains(found.Message, "[E1] compiler: boom") {
+		if !strings.Contains(found.Message, "E1 compiler: boom") {
 			t.Errorf("message not decorated with code+source: %q", found.Message)
 		}
 		if err := lspFinding(f, lspDiagnostic{Range: lspRange{Start: lspPosition{Line: 7}}}).Line; err != 8 {
@@ -44,7 +44,8 @@ func TestLSPFindingSeverityAndLine(t *testing.T) {
 
 // TestLSPFindingCarriesColumnDocsAndTags pins the extra context servers send
 // that lspFinding folds in: the start character becomes the finding column, the
-// codeDescription href becomes a docs link, and tag 2 marks code deprecated.
+// codeDescription href becomes the Docs field (stylable muted by renderers),
+// and tag 2 marks code deprecated. The message itself carries no brackets.
 func TestLSPFindingCarriesColumnDocsAndTags(t *testing.T) {
 	f := SourceFile{Display: "a.go", Ext: ".go"}
 	fd := lspFinding(f, lspDiagnostic{
@@ -59,11 +60,17 @@ func TestLSPFindingCarriesColumnDocsAndTags(t *testing.T) {
 	if fd.Column != 8 {
 		t.Errorf("character 7 should map to column 8, got %d", fd.Column)
 	}
-	if !strings.Contains(fd.Message, "(deprecated)") {
-		t.Errorf("deprecated tag not folded into message: %q", fd.Message)
+	if fd.Docs != "https://example.com/e9" {
+		t.Errorf("codeDescription href not carried as Docs: %q", fd.Docs)
 	}
-	if !strings.Contains(fd.Message, "[docs: https://example.com/e9]") {
-		t.Errorf("docs href not folded into message: %q", fd.Message)
+	if fd.Message != "E9 ts: bad (deprecated)" {
+		t.Errorf("message should be bracket-free code+source+tag, got %q", fd.Message)
+	}
+	if strings.Contains(fd.Message, "[") || strings.Contains(fd.Message, "]") {
+		t.Errorf("message must not carry decorative brackets: %q", fd.Message)
+	}
+	if !strings.Contains(docsSuffix(fd), "https://example.com/e9") {
+		t.Errorf("docsSuffix should surface the link: %q", docsSuffix(fd))
 	}
 	clean := lspFinding(f, lspDiagnostic{Range: lspRange{Start: lspPosition{Line: 4, Character: 1}}, Severity: 3, Message: "hi"})
 	if clean.Column != 2 {
@@ -71,6 +78,9 @@ func TestLSPFindingCarriesColumnDocsAndTags(t *testing.T) {
 	}
 	if clean.Message != "hi" {
 		t.Errorf("plain message must stay untouched, got %q", clean.Message)
+	}
+	if docsSuffix(clean) != "" {
+		t.Errorf("a finding with no Docs must have an empty suffix, got %q", docsSuffix(clean))
 	}
 }
 

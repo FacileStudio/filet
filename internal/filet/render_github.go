@@ -34,7 +34,7 @@ func WriteGitHub(w io.Writer, r Report) error {
 			max(f.Line, 1),
 			max(f.Column, 1),
 			githubProperty.Replace(f.Rule),
-			githubData.Replace(f.Message))
+			githubData.Replace(f.Message+docsSuffix(f)))
 		if err != nil {
 			return err
 		}

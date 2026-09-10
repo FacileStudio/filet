@@ -60,6 +60,31 @@ func TestTextFormatIsNeverColouredOffATerminal(t *testing.T) {
 	}
 }
 
+// TestDocsLinkSurvivesTextFormat proves a docs-bearing finding renders the link
+// as an unstyled " docs: <url>" tail with no decorative brackets when colour is
+// off, so the flat text is not missing the "how to fix" pointer.
+func TestDocsLinkSurvivesTextFormat(t *testing.T) {
+	r := Report{Findings: []Finding{
+		{Rule: "lsp.error", File: "a.go", Line: 3, Column: 6, Severity: Error,
+			Message: "E7 fake: boom", Docs: "https://example.com/e7"},
+	}, Files: 1, Lines: 5}
+
+	var buf bytes.Buffer
+	WriteText(&buf, r, TextOptions{})
+	out := buf.String()
+	for _, want := range []string{"E7 fake: boom", "docs: https://example.com/e7"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("text output missing %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "[docs:") || strings.Contains(out, "[E7]") {
+		t.Errorf("text output must not carry old bracket decoration:\n%s", out)
+	}
+	if strings.Contains(out, "\033[2m") {
+		t.Fatalf("off-terminal output must not include the muted escape: %q", out)
+	}
+}
+
 func TestAsciiFallbackHasNoBoxDrawing(t *testing.T) {
 	var buf bytes.Buffer
 	WriteText(&buf, Report{
