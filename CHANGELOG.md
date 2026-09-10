@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1] — 2026-09-10
+
+### Changed
+- filet now holds to its own defaults. `check.go`'s render dispatch moved to
+  its own file, the nilerr scanner split out of `go_err_nilerr.go`, and the
+  lipgloss/plain renderers share one column-width pass, so every file sits
+  under `funcsPerFile` and `fileLines`.
+- `goRoot()` derives GOROOT from `go env GOROOT` instead of the deprecated
+  `runtime.GOROOT()`, which stays correct for a copied or `-trimpath` binary.
+- Language-server teardown no longer swallows errors: pipe-closing failures
+  are joined into the returned error, and a failed post-initialize
+  notification makes `lspStart` close the server and fail instead of silently
+  proceeding.
+- Applied the `gopls` modernization passes surfaced by the LSP tier
+  (`maps.Copy`, `strings.Cut`, `max`, range-over-int and `Named.Methods`).
+
+### Fixed
+- `go.err.nilerr` scan helpers were split with no behaviour change; the
+  sentinel-gate canary suite is unchanged.
+
 ## [0.13.0] — 2026-09-10
 
 ### Changed
