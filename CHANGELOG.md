@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] — 2026-09-10
+
+### Fixed
+- The mason LSP-server directory is resolved through XDG (honours
+  `$XDG_DATA_HOME` when set) instead of hardcoding `~/.local/share`, so a
+  Neovim/mason fleet living under a non-default data dir is still found.
+  Mirrors the existing global-config resolution for `$XDG_CONFIG_HOME`.
+
 ## [0.11.1] — 2026-09-10
 
 ### Changed

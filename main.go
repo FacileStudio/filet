@@ -9,7 +9,7 @@ import (
 	"github.com/FacileStudio/filet/internal/filet"
 )
 
-var version = "0.11.1"
+var version = "0.11.2"
 
 func main() {
 	os.Exit(run())
