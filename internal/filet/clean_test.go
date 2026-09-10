@@ -115,6 +115,58 @@ func TestCleanSkipsGeneratedFile(t *testing.T) {
 	}
 }
 
+func TestCleanFormatsGoSource(t *testing.T) {
+	f := cleanSource(t, "clean.go", "package main\nfunc main(){\n\tx:=1  \n\ty:=2\n}\n")
+	res := CleanFile(cleanCfg(), f)
+	got := strings.Join(res.Lines, "\n")
+	if !strings.Contains(got, "x := 1") {
+		t.Fatalf("misformatted code was not normalized:\n%s", got)
+	}
+	if strings.Contains(got, "x:=1") {
+		t.Fatalf("spacing was not normalized:\n%s", got)
+	}
+	if res.Stats.Formatting != 1 {
+		t.Fatalf("expected one formatting fix, got %d", res.Stats.Formatting)
+	}
+	if !res.Changed {
+		t.Fatalf("formatting change was not reported as changed")
+	}
+}
+
+func TestCleanFormatOffLeavesCodeAlone(t *testing.T) {
+	cfg := cleanCfg()
+	cfg.Format = false
+	f := cleanSource(t, "clean.go", "package main\nfunc main(){\n\tx:=1\n}\n")
+	res := CleanFile(cfg, f)
+	if strings.Contains(strings.Join(res.Lines, "\n"), "x := 1") {
+		t.Fatalf("format disabled but source was reformatted:\n%s", strings.Join(res.Lines, "\n"))
+	}
+	if res.Changed {
+		t.Fatalf("clean reported a change with format off")
+	}
+}
+
+func TestCleanFormatGivesUpOnBrokenGo(t *testing.T) {
+	f := cleanSource(t, "clean.go", "package main\nfunc main() {\n\tx := 1 // note\n\tthis is not go\n}\n")
+	res := CleanFile(cleanCfg(), f)
+	got := strings.Join(res.Lines, "\n")
+	if strings.Contains(got, "// note") {
+		t.Fatalf("line fix was skipped because the file would not format:\n%s", got)
+	}
+	if res.Stats.Formatting != 0 {
+		t.Fatalf("expected format to give up on unparseable Go, got %d", res.Stats.Formatting)
+	}
+}
+
+func TestCleanFormatsOnlyGoFiles(t *testing.T) {
+	cfg := cleanCfg()
+	f := cleanSource(t, "clean.rs", "fn main(){\n\tlet x=1  ;\n}\n")
+	res := CleanFile(cfg, f)
+	if res.Changed {
+		t.Fatalf("non-Go file was formatted:\n%s", strings.Join(res.Lines, "\n"))
+	}
+}
+
 func TestCleanIsIdempotent(t *testing.T) {
 	f := cleanSource(t, "clean.go", "func main() {\n\tx := 1 // note  \n\t// const y = 2\n}\n")
 	cfg := cleanCfg()

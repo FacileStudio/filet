@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- `filet clean` now also reformats Go source through the language's own
+  formatter (the stdlib `go/format` engine, the same one `gofmt` drives), so a
+  cleaned file satisfies the project's formatter gate. A file the formatter
+  cannot parse keeps its line-level edits and is not failed. Gated on the new
+  `format` config toggle (default on); only `.go` files are affected.
+
 ## [0.12.0] — 2026-09-10
 
 ### Added

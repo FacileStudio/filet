@@ -67,6 +67,8 @@ treesitter:
 disabled: []              # e.g. [gen.line.long, go.doc.missing]
 
 failOn: %s                # info | warn | error | never
+
+format: %t                # filet clean rewrites Go through the language formatter
 `
 
 // Scaffold writes a commented starter config at path, seeded from the named preset.
@@ -85,7 +87,7 @@ func Scaffold(path, preset string) error {
 		l.FileLines, l.FuncsPerFile, l.FuncLines, l.FuncStatements, l.LineLength, l.Params, l.Returns,
 		l.Nesting, l.Complexity, l.StructFields, l.InterfaceMethods,
 		s.BanInlineComments, s.BanTODO, s.RequireDocComments, s.BanGlobalMutable, s.BanInit, s.BanTrailingSpace,
-		cfg.FailOn)
+		cfg.FailOn, cfg.Format)
 
 	if preset != "" && preset != "default" {
 		body = strings.Replace(body, "# preset: "+preset, "preset: "+preset, 1)

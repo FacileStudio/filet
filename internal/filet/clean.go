@@ -2,6 +2,7 @@ package filet
 
 import (
 	"bytes"
+	"go/format"
 	"os"
 	"slices"
 	"strings"
@@ -13,6 +14,7 @@ type CleanStats struct {
 	CommentedCode int
 	InlineComment int
 	TrailingSpace int
+	Formatting    int
 }
 
 // CleanFileResult is one file's cleaned lines, whether it changed, and why.
@@ -40,6 +42,12 @@ type CleanReport struct {
 //   - gen.comment.inline: a comment trailing real code is stripped.
 //   - gen.trailing.space: trailing whitespace is removed.
 //
+// When format is on the file is then passed through the language's own
+// formatter (Go: the stdlib go/format engine, the same one gofmt drives), so a
+// cleaned file also satisfies the project's formatter. Formatting is best-effort:
+// a file go/format cannot parse is left with its line edits applied, never
+// failing the run.
+//
 // A full-line prose comment, a file header, or a directive (//nolint:, //go:)
 // is left alone: the inline rule only fires on a comment that follows code, and
 // commented-out code is the only whole line clean deletes. Generated files are
@@ -61,7 +69,48 @@ func CleanFile(cfg *Config, f SourceFile) CleanFileResult {
 		st = next
 	}
 	res.Changed = !slices.Equal(f.Lines, res.Lines)
+	formatLines(cfg, f, &res)
 	return res
+}
+
+// formatLines runs the reformatted source for a Go file through go/format when
+// the config asks for it, replacing res.Lines when the formatter produced
+// different output. A parse failure leaves the line edits in place; formatting
+// is a best-effort layer, never a reason to fail the whole run.
+func formatLines(cfg *Config, f SourceFile, res *CleanFileResult) {
+	if !cfg.Format || f.Ext != ".go" {
+		return
+	}
+	before := trimTrailingEmpty(res.Lines)
+	formatted, err := format.Source(cleanBytes(before))
+	if err != nil {
+		return
+	}
+	after := trimTrailingEmpty(strings.Split(string(formatted), "\n"))
+	if slices.Equal(after, before) {
+		return
+	}
+	res.Lines = after
+	res.Changed = true
+	res.Stats.Formatting++
+}
+
+// trimTrailingEmpty drops the single empty element that a trailing newline
+// leaves in a split, so the edited and formatted sides compare on equal terms.
+func trimTrailingEmpty(lines []string) []string {
+	if len(lines) > 0 && lines[len(lines)-1] == "" {
+		return lines[:len(lines)-1]
+	}
+	return lines
+}
+
+// cleanBytes joins cleaned lines back into the byte form a formatter expects,
+// with a trailing newline like a real source file.
+func cleanBytes(lines []string) []byte {
+	if len(lines) == 0 {
+		return []byte{}
+	}
+	return []byte(strings.Join(lines, "\n") + "\n")
 }
 
 // cleanLine resolves the auto-fixable findings on one raw line and returns the
@@ -155,6 +204,7 @@ func applyChanged(r *CleanReport, res CleanFileResult, src []byte, dryRun bool) 
 	r.Stats.CommentedCode += res.Stats.CommentedCode
 	r.Stats.InlineComment += res.Stats.InlineComment
 	r.Stats.TrailingSpace += res.Stats.TrailingSpace
+	r.Stats.Formatting += res.Stats.Formatting
 	if dryRun {
 		return nil
 	}

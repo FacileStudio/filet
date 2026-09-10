@@ -88,6 +88,7 @@ type Config struct {
 	Limits       Limits       `yaml:"limits"`
 	Architecture Architecture `yaml:"architecture"`
 	Style        Style        `yaml:"style"`
+	Format       bool         `yaml:"format"`
 	Treesitter   Treesitter   `yaml:"treesitter"`
 	LSP          LSP          `yaml:"lsp"`
 	Disabled     []string     `yaml:"disabled"`
@@ -112,6 +113,7 @@ func DefaultConfig() *Config {
 		Limits:       defaultLimits(),
 		Architecture: Architecture{},
 		Style:        defaultStyle(),
+		Format:       true,
 		Treesitter:   Treesitter{Enabled: true},
 		LSP:          defaultLSP(),
 		FailOn:       "error",
