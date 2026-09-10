@@ -34,7 +34,7 @@ func LoadConfig(dir string) (*Config, string, error) {
 	}
 	cfg.root = filepath.Dir(path)
 	if cfg.FailOn == "" {
-		cfg.FailOn = "error"
+		cfg.FailOn = "info"
 	}
 	if !ValidFailOn(cfg.FailOn) {
 		return nil, path, fmt.Errorf("failOn: unknown severity %q (use info, warn, error or never)", cfg.FailOn)

@@ -6,12 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-09-10
+
 ### Changed
+- `filet check` now fails on any finding, not just errors: the default gate is
+  `info`, so the report must be clean for the build to pass. Set `failOn` in
+  `filet.yml` to keep a looser gate.
 - `filet clean` now also reformats Go source through the language's own
   formatter (the stdlib `go/format` engine, the same one `gofmt` drives), so a
   cleaned file satisfies the project's formatter gate. A file the formatter
   cannot parse keeps its line-level edits and is not failed. Gated on the new
   `format` config toggle (default on); only `.go` files are affected.
+
+### Fixed
+- `go.err.nilerr` no longer fires on a return that puts nil in the error slot
+  when it sits under a sentinel gate — `if err == ErrNoRows` or
+  `if errors.Is(err, ErrNoRows)`. Returning a default for a known "not found"
+  sentinel is a deliberate result, not a swallowed error. An `else` branch of a
+  sentinel gate is still flagged.
 
 ## [0.12.0] — 2026-09-10
 
