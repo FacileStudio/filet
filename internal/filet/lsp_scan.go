@@ -30,15 +30,26 @@ func findServerBin(name string) string {
 	if _, err := exec.LookPath(name); err == nil {
 		return name
 	}
-	cand := filepath.Join(masonBinDir(), name)
-	if _, err := os.Stat(cand); err == nil {
-		return cand
+	if dir := masonBinDir(); dir != "" {
+		cand := filepath.Join(dir, name)
+		if _, err := os.Stat(cand); err == nil {
+			return cand
+		}
 	}
 	return ""
 }
 
+// masonBinDir resolves the standard mason install dir, honouring XDG: it lives
+// under $XDG_DATA_HOME when that is set and absolute, else ~/.local/share. The
+// same shape as the global config resolution in load.go.
 func masonBinDir() string {
-	return filepath.Join(os.Getenv("HOME"), ".local", "share", "nvim", "mason", "bin")
+	if dir := os.Getenv("XDG_DATA_HOME"); filepath.IsAbs(dir) {
+		return filepath.Join(dir, "nvim", "mason", "bin")
+	}
+	if home := os.Getenv("HOME"); home != "" {
+		return filepath.Join(home, ".local", "share", "nvim", "mason", "bin")
+	}
+	return ""
 }
 
 // lspUnavailable emits the honest, visible finding for a language filet could
