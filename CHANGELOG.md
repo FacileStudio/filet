@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] — 2026-09-10
+
+### Added
+- `filet clean` now removes comments inside a function body (`go.comment.inbody`),
+  so it self-fixes the in-body finding instead of only reporting it. A comment
+  trailing code on the same line is stripped without deleting the line; standalone
+  prose, file headers, generated files and tool directives (`//nolint:`, `//go:`)
+  are still preserved.
+
 ## [0.13.1] — 2026-09-10
 
 ### Changed
@@ -218,7 +227,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Output built around a parseable contract.
 - MIT license and a CI workflow that runs filet against filet.
 
-[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/FacileStudio/filet/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/FacileStudio/filet/compare/v0.13.1...v0.14.0
+[0.13.1]: https://github.com/FacileStudio/filet/compare/v0.13.0...v0.13.1
+[0.13.0]: https://github.com/FacileStudio/filet/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/FacileStudio/filet/compare/v0.11.2...v0.12.0
 [0.11.2]: https://github.com/FacileStudio/filet/compare/v0.11.1...v0.11.2
 [0.11.1]: https://github.com/FacileStudio/filet/compare/v0.11.0...v0.11.1
