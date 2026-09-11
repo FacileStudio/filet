@@ -33,6 +33,7 @@ func LoadConfig(dir string) (*Config, string, error) {
 	if err := yaml.Unmarshal(raw, cfg); err != nil {
 		return nil, path, err
 	}
+	cfg.raw = raw
 	cfg.root = filepath.Dir(path)
 	if cfg.FailOn == "" {
 		cfg.FailOn = "info"

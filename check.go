@@ -10,10 +10,12 @@ import (
 )
 
 type commonFlags struct {
-	format string
-	fail   string
-	quiet  bool
-	target string
+	format   string
+	fail     string
+	quiet    bool
+	target   string
+	noCache  bool
+	cacheDir string
 }
 
 func parseCommon(name string, args []string) (*commonFlags, error) {
@@ -22,6 +24,8 @@ func parseCommon(name string, args []string) (*commonFlags, error) {
 	fs.StringVar(&c.format, "format", "auto", "output format: auto, text, lipgloss, line, json, sarif or github")
 	fs.StringVar(&c.fail, "fail", "", "severity that makes the command exit 1")
 	fs.BoolVar(&c.quiet, "quiet", false, "only print the summary")
+	fs.BoolVar(&c.noCache, "no-cache", false, "ignore the on-disk findings cache")
+	fs.StringVar(&c.cacheDir, "cache-dir", "", "override the findings cache directory")
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
@@ -61,6 +65,12 @@ func loadConfig(c *commonFlags) (*filet.Config, error) {
 			return nil, fmt.Errorf("-fail: unknown severity %q (use info, warn, error or never)", c.fail)
 		}
 		cfg.FailOn = c.fail
+	}
+	if c.noCache {
+		cfg.Cache.Enabled = false
+	}
+	if c.cacheDir != "" {
+		cfg.Cache.Dir = c.cacheDir
 	}
 	return cfg, nil
 }

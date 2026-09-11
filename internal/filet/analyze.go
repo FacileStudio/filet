@@ -21,24 +21,22 @@ func Analyze(cfg *Config, target string) (Report, error) {
 		return Report{}, err
 	}
 
+	w := newCacheWorker(cfg, target)
 	report := Report{Files: len(files)}
-	var goFiles []SourceFile
+
 	for _, f := range files {
 		n := len(f.Lines)
 		if n > 0 && f.Lines[n-1] == "" {
 			n--
 		}
 		report.Lines += n
-		report.Findings = append(report.Findings, CheckGeneric(cfg, f)...)
-		if f.Ext == ".go" {
-			goFiles = append(goFiles, f)
-		} else if cfg.UsesTreesitter(f.Ext) {
-			report.Findings = append(report.Findings, CheckTree(cfg, f)...)
-		}
+		report.Findings = append(report.Findings, checkFileCached(w, cfg, f)...)
 	}
-	report.Findings = append(report.Findings, checkGoFiles(cfg, goFiles)...)
-	report.Findings = append(report.Findings, CheckArchitecture(cfg, files)...)
-	report.Findings = append(report.Findings, CheckLSP(cfg, files)...)
+
+	report.Findings = append(report.Findings, checkGoCached(w, cfg, files)...)
+	report.Findings = append(report.Findings, checkRestCached(w, cfg, files)...)
+	w.write()
+
 	SortFindings(report.Findings)
 	return report, nil
 }

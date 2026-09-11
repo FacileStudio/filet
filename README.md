@@ -149,6 +149,14 @@ filet roast internal/          # same findings, plus commentary
 filet check . -fail warn       # exit 1 on warnings too
 ```
 
+By default `check` and `roast` cache each tier's findings on disk, keyed by the content the tier
+inspected plus the config and the tool version, and reuse them on a later run instead of re-parsing,
+re-typechecking and re-spawning language servers. `filet check; filet check` on an unchanged tree is
+near-instant; edit one file and only its own tier re-runs. The cache lives in
+`$XDG_CACHE_HOME/filet` (else `~/.cache/filet`), is one file per project, and self-invalidates when
+`filet.yml`, the config or the tool changes, so a stale entry is never served. Turn it off with
+`-no-cache`, move it with `-cache-dir <dir>` or `cache.enabled: false` in `filet.yml`.
+
 ### Output formats
 
 `-format` takes `auto` (the default), `text`, `line`, `json`, `sarif` or `github`.

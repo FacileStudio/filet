@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `filet check` and `filet roast` now cache findings on disk keyed by content
+  hash, config and tool version, reusing them on later runs instead of
+  re-parsing, re-typechecking and re-spawning language servers. The cache
+  lives under `$XDG_CACHE_HOME/filet` (else `~/.cache/filet`) and
+  self-invalidates when the config or a rule changes; `-no-cache`,
+  `-cache-dir` and `cache: {enabled: false}` control it.
+
 ## [0.14.0] — 2026-09-10
 
 ### Added

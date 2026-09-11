@@ -81,9 +81,21 @@ type Style struct {
 	Format             bool `yaml:"format"`
 }
 
+// Cache configures the on-disk findings store. On by default: every Run stores
+// the findings each tier produced, keyed by the content hash of what it
+// inspected, and a later run with the same content, config and version reuses
+// them instead of re-parsing, re-typechecking and re-spawning language servers.
+// The key embeds the config and the tool version, so the store is
+// self-invalidating — a stale entry can never be served, and a format change
+// costs a miss, not a wrong answer. Dir overrides the default cache location
+// ($XDG_CACHE_HOME/filet, else ~/.cache/filet); disable with enabled: false.
+type Cache struct {
+	Enabled bool   `yaml:"enabled"`
+	Dir     string `yaml:"dir,omitempty"`
+}
+
 // Config is the full contents of filet.yml.
 type Config struct {
-	Preset       string       `yaml:"preset"`
 	Ignore       []string     `yaml:"ignore"`
 	Extensions   []string     `yaml:"extensions"`
 	Limits       Limits       `yaml:"limits"`
@@ -91,11 +103,15 @@ type Config struct {
 	Style        Style        `yaml:"style"`
 	Treesitter   Treesitter   `yaml:"treesitter"`
 	LSP          LSP          `yaml:"lsp"`
+	Cache        Cache        `yaml:"cache"`
 	Disabled     []string     `yaml:"disabled"`
 	FailOn       string       `yaml:"failOn"`
 
-	root     string
-	fileName *regexp.Regexp
+	root string
+
+	// raw is the unmodified config-file bytes (empty when the defaults apply).
+	// It is part of the cache key, so editing filet.yml invalidates findings.
+	raw []byte
 }
 
 // DefaultConfig returns the configuration used when a project has no config file.
@@ -115,6 +131,7 @@ func DefaultConfig() *Config {
 		Style:        defaultStyle(),
 		Treesitter:   Treesitter{Enabled: true},
 		LSP:          defaultLSP(),
+		Cache:        Cache{Enabled: true},
 		FailOn:       "info",
 	}
 }
@@ -147,16 +164,14 @@ func defaultStyle() Style {
 	}
 }
 
+// compile validates the architecture filename pattern so a bad regexp fails at
+// load time, not mid-check. The pattern is recompiled on demand by arch.filename.
 func (c *Config) compile() error {
 	if c.Architecture.FileNamePattern == "" {
 		return nil
 	}
-	re, err := regexp.Compile(c.Architecture.FileNamePattern)
-	if err != nil {
-		return err
-	}
-	c.fileName = re
-	return nil
+	_, err := regexp.Compile(c.Architecture.FileNamePattern)
+	return err
 }
 
 // Enabled reports whether a rule should run, honouring the disabled list.

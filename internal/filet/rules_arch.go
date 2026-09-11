@@ -3,6 +3,7 @@ package filet
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -72,14 +73,19 @@ func depth(cfg *Config, f SourceFile) Finding {
 }
 
 func filename(cfg *Config, f SourceFile) Finding {
-	if !cfg.Enabled("arch.filename") || cfg.fileName == nil {
+	pattern := cfg.Architecture.FileNamePattern
+	if !cfg.Enabled("arch.filename") || pattern == "" {
 		return Finding{}
 	}
-	if cfg.fileName.MatchString(filepath.Base(f.Rel)) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return Finding{}
+	}
+	if re.MatchString(filepath.Base(f.Rel)) {
 		return Finding{}
 	}
 	return newFinding("arch.filename", f.Display, 1, Warn,
-		"filename does not match "+cfg.Architecture.FileNamePattern)
+		"filename does not match "+pattern)
 }
 
 func checkImports(rules map[string][]string, f SourceFile) []Finding {
