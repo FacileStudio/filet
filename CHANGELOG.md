@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] — 2026-09-11
+
+### Changed
+- `filet check` now runs the file and Go-package rules across a bounded worker
+  pool (one goroutine per logical core, capped at one per unit) instead of
+  strictly sequentially. Each file's content hash is computed once at scan time
+  and reused by every tier. Two latent races the parallel paths would otherwise
+  expose are fixed: the disk-cache store is now mutex-guarded, and the shared Go
+  toolchain root (`build.Default.GOROOT`) is set exactly once. Results stay
+  deterministic: files keep their scan order and Go directories are sorted.
+
 ## [0.15.0] — 2026-09-11
 
 ### Added
