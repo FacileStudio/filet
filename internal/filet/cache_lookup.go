@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 )
 
 // checkFileCached returns a file's generic and tree-sitter findings, reusing a
@@ -13,7 +14,7 @@ import (
 // Go files get the generic rules here and their package-scoped rules via
 // checkGoCached; the two never overlap in rules or findings.
 func checkFileCached(w *cacheWorker, cfg *Config, f SourceFile) []Finding {
-	key := w.unitKey("file", f.Rel, contentHash(f.Src))
+	key := w.unitKey("file", f.Rel, f.Hash)
 	if cached, ok := w.get(key); ok {
 		return cached
 	}
@@ -29,18 +30,25 @@ func checkFileCached(w *cacheWorker, cfg *Config, f SourceFile) []Finding {
 // per-directory findings when none of the directory's files changed. A change
 // in one file re-checks its whole directory, never a sibling directory.
 func checkGoCached(w *cacheWorker, cfg *Config, files []SourceFile) []Finding {
-	var out []Finding
-	for dir, group := range groupByDir(files) {
-		key := w.unitKey("go", dir, dirHash(group))
+	groups := groupByDir(files)
+	dirs := make([]string, 0, len(groups))
+	for d := range groups {
+		dirs = append(dirs, d)
+	}
+	sort.Strings(dirs)
+	buckets := make([][]Finding, len(dirs))
+	parallelFor(len(dirs), workerCount(len(dirs)), func(i int) {
+		group := groups[dirs[i]]
+		key := w.unitKey("go", dirs[i], dirHash(group))
 		if found, ok := w.get(key); ok {
-			out = append(out, found...)
-			continue
+			buckets[i] = found
+			return
 		}
 		found := checkGoDir(cfg, group)
 		w.put(key, found)
-		out = append(out, found...)
-	}
-	return out
+		buckets[i] = found
+	})
+	return joinFindings(buckets)
 }
 
 // groupByDir buckets go files by their directory, deterministically ordered.
@@ -63,7 +71,7 @@ func dirHash(group []SourceFile) string {
 	slices.SortFunc(sorted, func(a, b SourceFile) int { return cmp.Compare(a.Rel, b.Rel) })
 	var parts []string
 	for _, f := range sorted {
-		parts = append(parts, f.Rel, contentHash(f.Src))
+		parts = append(parts, f.Rel, f.Hash)
 	}
 	return cacheKey(parts...)
 }
@@ -91,7 +99,7 @@ func runHash(files []SourceFile) string {
 	slices.SortFunc(sorted, func(a, b SourceFile) int { return cmp.Compare(a.Rel, b.Rel) })
 	var parts []string
 	for _, f := range sorted {
-		parts = append(parts, f.Rel, contentHash(f.Src))
+		parts = append(parts, f.Rel, f.Hash)
 	}
 	parts = append(parts, fmt.Sprint(len(files)))
 	return cacheKey(parts...)

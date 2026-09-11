@@ -30,9 +30,9 @@ func Analyze(cfg *Config, target string) (Report, error) {
 			n--
 		}
 		report.Lines += n
-		report.Findings = append(report.Findings, checkFileCached(w, cfg, f)...)
 	}
 
+	report.Findings = checkFilesParallel(w, cfg, files)
 	report.Findings = append(report.Findings, checkGoCached(w, cfg, files)...)
 	report.Findings = append(report.Findings, checkRestCached(w, cfg, files)...)
 	w.write()

@@ -3,6 +3,7 @@ package filet
 import (
 	"encoding/hex"
 	"hash/fnv"
+	"sync"
 )
 
 // cacheWorker holds the store for one analyze run and decides, per unit,
@@ -13,6 +14,7 @@ type cacheWorker struct {
 	id     string
 	cfg    *Config
 	target string
+	mu     sync.Mutex
 	store  map[string][]Finding
 }
 
@@ -35,10 +37,12 @@ func (w *cacheWorker) get(key string) ([]Finding, bool) {
 	if w.store == nil {
 		return nil, false
 	}
+	w.mu.Lock()
 	f, ok := w.store[key]
 	if ok {
 		restoreSeverity(f)
 	}
+	w.mu.Unlock()
 	return f, ok
 }
 
@@ -47,7 +51,9 @@ func (w *cacheWorker) put(key string, f []Finding) {
 	if w.store == nil {
 		return
 	}
+	w.mu.Lock()
 	w.store[key] = f
+	w.mu.Unlock()
 }
 
 // write persists the store when the cache is active.

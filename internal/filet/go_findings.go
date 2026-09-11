@@ -69,13 +69,10 @@ func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Inf
 	if !cfg.Enabled("go.leak.resource") || len(files) == 0 {
 		return nil
 	}
-	root := goRoot()
-	if root == "" {
+	if goRoot() == "" {
 		return nil
 	}
-	if build.Default.GOROOT == "" {
-		build.Default.GOROOT = root
-	}
+	ensureGoRoot()
 	info := &types.Info{
 		Types: make(map[ast.Expr]types.TypeAndValue),
 		Defs:  make(map[*ast.Ident]types.Object),
@@ -87,6 +84,15 @@ func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Inf
 	}
 	return info
 }
+
+// ensureGoRoot points the shared build context at the resolved toolchain exactly
+// once, so the standard-library importer in typeInfoFor can resolve the stdlib
+// and so concurrent package checks never race on the global GOROOT slot.
+var ensureGoRoot = sync.OnceFunc(func() {
+	if build.Default.GOROOT == "" {
+		build.Default.GOROOT = goRoot()
+	}
+})
 
 var goRootFn = sync.OnceValue(func() string {
 	if bin, err := exec.LookPath("go"); err == nil {

@@ -15,6 +15,7 @@ type SourceFile struct {
 	Display string
 	Ext     string
 	Src     []byte
+	Hash    string
 	Lines   []string
 }
 
@@ -75,6 +76,7 @@ func readSource(cfg *Config, path string) (SourceFile, error) {
 		Display: DisplayPath(path),
 		Ext:     filepath.Ext(path),
 		Src:     src,
+		Hash:    contentHash(src),
 		Lines:   strings.Split(strings.ReplaceAll(string(src), "\r\n", "\n"), "\n"),
 	}, nil
 }
