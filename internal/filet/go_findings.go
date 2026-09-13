@@ -3,7 +3,6 @@ package filet
 import (
 	"go/ast"
 	"go/build"
-	"go/importer"
 	"go/token"
 	"go/types"
 	"os"
@@ -13,7 +12,12 @@ import (
 )
 
 func runGoChecks(cfg *Config, f SourceFile, fset *token.FileSet, parsed *ast.File) []Finding {
-	return runGoChecksInfo(cfg, f, fset, parsed, typeInfoFor(cfg, fset, []*ast.File{parsed}))
+	info := typeInfoFor(cfg, fset, []*ast.File{parsed})
+	out := runGoChecksInfo(cfg, f, fset, parsed, info)
+	if cfg.Enabled("go.leak.resource") && info == nil {
+		out = append(out, leakSkipFinding(f))
+	}
+	return out
 }
 
 // runGoChecksInfo runs the AST rules over one parsed file, carrying the type
@@ -36,15 +40,19 @@ func runGoChecksInfo(cfg *Config, f SourceFile, fset *token.FileSet, parsed *ast
 	g.inBodyComments()
 	g.calls()
 	g.nilerrCheck()
-	if cfg.Enabled("go.leak.resource") {
-		if info == nil {
-			out = append(out, newFinding("go.leak.resource", f.Display, 1, Info,
-				"could not run the resource-leak check: type information is unavailable for this file"))
-		} else {
-			g.resourceLeaks()
-		}
+	if cfg.Enabled("go.leak.resource") && info != nil {
+		g.resourceLeaks()
 	}
 	return out
+}
+
+// leakSkipFinding reports, once per package, that the leak rule could not run.
+// It is not a defect of the checked code: the checker failed to resolve the
+// package's imports, so it says so instead of staying silent or blaming the
+// file.
+func leakSkipFinding(f SourceFile) Finding {
+	return newFinding("go.leak.resource", f.Display, 1, Info,
+		"resource-leak check skipped: package type information could not be resolved")
 }
 
 func makeGoFindingsAdder(cfg *Config, f SourceFile, fset *token.FileSet, out *[]Finding) addFn {
@@ -60,11 +68,11 @@ func makeGoFindingsAdder(cfg *Config, f SourceFile, fset *token.FileSet, out *[]
 }
 
 // typeInfoFor type-checks the given files as one package and returns the
-// produced type info, or nil when nothing usable resolved. go/types fills
-// info with everything it can even when Check returns an error (an
-// unresolvable third-party import, an undefined name) — only a check that
-// resolves nothing yields nil. Each file of a package is passed the same
-// result so cross-file symbols are available to the leak rule.
+// produced type info, or nil when nothing usable resolved. Module imports are
+// resolved through go list (via go/packages); a directory outside a module
+// falls back to the stdlib-only default importer, which still types files
+// importing nothing but the standard library. Each file of a package is passed
+// the same result so cross-file symbols are available to the leak rule.
 func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Info {
 	if !cfg.Enabled("go.leak.resource") || len(files) == 0 {
 		return nil
@@ -78,7 +86,7 @@ func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Inf
 		Defs:  make(map[*ast.Ident]types.Object),
 		Uses:  make(map[*ast.Ident]types.Object),
 	}
-	conf := &types.Config{Importer: importer.Default(), Error: func(err error) {}}
+	conf := &types.Config{Importer: importerFor(fset, files[0]), Error: func(err error) {}}
 	if _, err := conf.Check(files[0].Name.Name, fset, files, info); err != nil && len(info.Types) == 0 {
 		return nil
 	}
@@ -110,6 +118,6 @@ var goRootFn = sync.OnceValue(func() string {
 // -trimpath binary is copied to a machine where runtime.GOROOT no longer points
 // at the toolchain it was built with. The GOROOT environment variable is the
 // fallback when no go binary is on the path. An empty result means the stdlib
-// cannot be resolved and the leak rule degrades to its visible "could not run"
-// finding instead of silently missing leaks.
+// cannot be resolved and the leak rule degrades to its visible skip finding
+// instead of silently missing leaks.
 func goRoot() string { return goRootFn() }

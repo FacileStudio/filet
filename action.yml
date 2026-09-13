@@ -9,7 +9,7 @@ branding:
 inputs:
   version:
     description: filet version to install, as a Go module version. Pin it — main is not a contract.
-    default: v0.17.1
+    default: v0.18.0
   path:
     description: Directory to check, relative to the repository root.
     default: .

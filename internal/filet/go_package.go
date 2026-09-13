@@ -41,6 +41,10 @@ func checkGoDir(cfg *Config, files []SourceFile) []Finding {
 	for _, grp := range groupByPackage(pd.files) {
 		info := typeInfoFor(cfg, pd.fset, grp.files)
 		out = append(out, checkGoGroup(cfg, pd.fset, pd.byPath, grp, info)...)
+		if cfg.Enabled("go.leak.resource") && info == nil && len(grp.files) > 0 {
+			first := pd.byPath[pd.fset.Position(grp.files[0].Name.Pos()).Filename]
+			out = append(out, leakSkipFinding(first))
+		}
 	}
 	return out
 }

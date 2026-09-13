@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] — 2026-09-13
+
+### Fixed
+- `go.leak.resource` now type-checks packages whose imports are module
+  paths. The stdlib importer could not resolve them, so the check silently
+  degraded on every `main.go`-style file and reported the failure as a
+  per-file info finding. Imports now resolve through `go list` via
+  `golang.org/x/tools/go/packages`; directories outside a module fall back
+  to the stdlib-only importer.
+- A skipped leak check is reported once per package with a message that
+  says the checker failed, not a per-file finding on line 1 that read like
+  a defect of the checked file.
+
+### Changed
+- New dependency: `golang.org/x/tools/go/packages`.
+
 ## [0.17.1] — 2026-09-13
 
 ### Fixed
