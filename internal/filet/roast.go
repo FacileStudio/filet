@@ -135,6 +135,10 @@ var punchlinesCore = map[string][]string{
 		"This directory was explicitly banned and it came back anyway.",
 		"A utils/ directory is where cohesion goes to die.",
 	},
+	"arch.dir.files": {
+		"A directory this crowded is where files go to stop being found.",
+		"Whatever the limit was, this directory never heard of it.",
+	},
 	"arch.file.missing": {
 		"The convention is only a convention where somebody checks it.",
 		"Seven directories follow this pattern. This one is improvising.",

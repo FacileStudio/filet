@@ -18,6 +18,7 @@ func CheckArchitecture(cfg *Config, files []SourceFile) []Finding {
 
 	seenDir := map[string]bool{}
 	var dirs []string
+	counts := make(map[string]int)
 	for _, f := range files {
 		dir := filepath.ToSlash(filepath.Dir(f.Rel))
 		if !seenDir[dir] {
@@ -25,12 +26,14 @@ func CheckArchitecture(cfg *Config, files []SourceFile) []Finding {
 			dirs = append(dirs, dir)
 			out = append(out, forbiddenDir(cfg, dir)...)
 		}
+		counts[dir]++
 		out = append(out, depth(cfg, f), filename(cfg, f))
 		if cfg.Enabled("arch.import.forbidden") && len(a.ForbiddenImports) > 0 {
 			out = append(out, checkImports(a.ForbiddenImports, f)...)
 		}
 	}
 	out = append(out, requiredFiles(cfg, dirs)...)
+	out = append(out, filesPerDir(cfg, counts)...)
 	return slices.DeleteFunc(out, func(f Finding) bool { return f.Rule == "" })
 }
 

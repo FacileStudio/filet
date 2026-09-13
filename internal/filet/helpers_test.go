@@ -24,6 +24,16 @@ func countRule(f []Finding, rule string) int {
 	return n
 }
 
+func ruleFindings(f []Finding, rule string) []Finding {
+	var out []Finding
+	for _, x := range f {
+		if x.Rule == rule {
+			out = append(out, x)
+		}
+	}
+	return out
+}
+
 func writeTemp(path, body string) error {
 	return os.WriteFile(path, []byte(body), 0o644)
 }

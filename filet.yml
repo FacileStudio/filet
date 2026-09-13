@@ -24,6 +24,11 @@ architecture:
   forbiddenDirs: [internal/utils, internal/helpers, pkg/common]
   maxDepth: 3
   fileNamePattern: '^[a-z0-9_]+\.go$'
+  maxFilesPerDir:
+    .: 20                 # the root collects meta files legitimately; loose code does not
+    # The rule engine is many small files by design: funcsPerFile: 8 pushes one
+    # rule per file, so it outgrows the general cap without being a dumping ground.
+    internal/filet: 0
   # The treesitter tier imports vendored grammar modules under tree_sitter/ —
   # third-party C that internal/filet legitimately depends on. The ban is scoped
   # to filet's own Go source so it keeps guarding against a rule package that

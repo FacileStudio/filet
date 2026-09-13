@@ -11,6 +11,7 @@ import (
 // deliberately, rather than fall out of an edit somewhere else.
 var frozenRules = []string{
 	"arch.depth",
+	"arch.dir.files",
 	"arch.dir.forbidden",
 	"arch.dir.missing",
 	"arch.file.missing",

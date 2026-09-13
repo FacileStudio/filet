@@ -35,9 +35,18 @@ type Architecture struct {
 	RequiredDirs     []string            `yaml:"requiredDirs"`
 	ForbiddenDirs    []string            `yaml:"forbiddenDirs"`
 	MaxDepth         int                 `yaml:"maxDepth"`
+	MaxFilesPerDir   DirFileLimits       `yaml:"maxFilesPerDir"`
 	FileNamePattern  string              `yaml:"fileNamePattern"`
 	RequiredFiles    map[string][]string `yaml:"requiredFiles"`
 	ForbiddenImports map[string][]string `yaml:"forbiddenImports"`
+}
+
+// DirFileLimits is architecture.maxFilesPerDir: either a scalar limit applied
+// to every directory, or a map from a path.Match glob relative to the config
+// root to a per-directory limit. The zero value limits nothing.
+type DirFileLimits struct {
+	General int
+	Globs   map[string]int
 }
 
 // Treesitter configures the parse-tree analysis tier. On by default: the tier

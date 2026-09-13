@@ -35,6 +35,9 @@ architecture:
   # forbiddenDirs: [internal/utils, pkg/common]
   # maxDepth: 6           # 0 (the default) disables the depth rule
   # fileNamePattern: '^[a-z0-9_]+\.go$'
+  # maxFilesPerDir: 30    # warn when a directory holds more tracked files than this
+  # maxFilesPerDir:       # or glob-scoped, most specific glob wins; 0 opts a path out
+  #   .: 20
   # requiredFiles:         # every directory matching a glob must hold these
   #   "apps/api/modules/*": [router.go]
   # forbiddenImports:      # keep the layers honest: prefix -> imports it must never pull in

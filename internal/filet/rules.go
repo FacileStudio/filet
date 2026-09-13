@@ -47,6 +47,7 @@ var registry = []Rule{
 	{"arch.dir.missing", "architecture.requiredDirs entry is absent"},
 	{"arch.dir.forbidden", "path matches architecture.forbiddenDirs"},
 	{"arch.file.missing", "directory matching an architecture.requiredFiles glob lacks a required file"},
+	{"arch.dir.files", "directory holds more source files than architecture.maxFilesPerDir allows (off by default)"},
 	{"arch.depth", "path deeper than architecture.maxDepth (0 disables; off by default)"},
 	{"arch.filename", "filename does not match architecture.fileNamePattern"},
 	{"arch.import.forbidden", "import banned for this path by architecture.forbiddenImports"},

@@ -1,6 +1,7 @@
 package filet
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -96,5 +97,115 @@ func assertPaths(t *testing.T, f SourceFile) {
 	}
 	if f.Display != "myproj/apps/api/modules/billing/service.go" {
 		t.Fatalf("Display must be relative to the working directory, got %q", f.Display)
+	}
+}
+
+func TestMaxFilesPerDirFlagsDirectoriesOverTheLimit(t *testing.T) {
+	root := t.TempDir()
+	module(t, root, "auth", "router.go", "service.go", "store.go")
+	module(t, root, "billing", "service.go")
+	for _, name := range []string{"main.go", "cli.go", "server.go"} {
+		if err := writeTemp(filepath.Join(root, name), "package main\n"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg := DefaultConfig()
+	cfg.root = root
+	cfg.Architecture.MaxFilesPerDir = DirFileLimits{General: 2}
+
+	got := ruleFindings(archFindings(t, cfg, root), "arch.dir.files")
+	if len(got) != 2 {
+		t.Fatalf("the root and auth exceed the limit, got %d findings in %v", len(got), ruleIDs(got))
+	}
+	sawRoot := false
+	for _, f := range got {
+		sawRoot = sawRoot || f.File == DisplayPath(root)
+		if f.Severity != Warn {
+			t.Fatal("a directory over its file budget is a warning, not an error")
+		}
+		if f.Message != "directory holds 3 files (limit 2)" {
+			t.Fatalf("unexpected message %q", f.Message)
+		}
+	}
+	if !sawRoot {
+		t.Fatal("the root directory counts too")
+	}
+}
+
+func TestMaxFilesPerDirGlobOverridesGeneral(t *testing.T) {
+	root := t.TempDir()
+	module(t, root, "auth", "router.go", "service.go", "store.go")
+	module(t, root, "billing", "router.go", "service.go", "store.go")
+
+	cfg := DefaultConfig()
+	cfg.root = root
+	cfg.Architecture.MaxFilesPerDir = DirFileLimits{
+		General: 1,
+		Globs: map[string]int{
+			"apps/api/modules/billing": 5,
+			"apps/api/modules/*":       2,
+		},
+	}
+
+	got := ruleFindings(archFindings(t, cfg, root), "arch.dir.files")
+	if len(got) != 1 {
+		t.Fatalf("only auth is over its glob limit, got %d in %v", len(got), ruleIDs(got))
+	}
+	if !strings.Contains(got[0].File, "auth") {
+		t.Fatalf("billing is covered by the exact glob and must stay quiet, got %q", got[0].File)
+	}
+	if got[0].Message != "directory holds 3 files (limit 2)" {
+		t.Fatalf("the wildcard limit applies, got %q", got[0].Message)
+	}
+}
+
+func TestMaxFilesPerDirOffByDefault(t *testing.T) {
+	root := t.TempDir()
+	module(t, root, "auth", "router.go", "service.go", "store.go")
+
+	cfg := DefaultConfig()
+	cfg.root = root
+	if got := archFindings(t, cfg, root); countRule(got, "arch.dir.files") != 0 {
+		t.Fatal("unset maxFilesPerDir must stay silent")
+	}
+
+	cfg.Architecture.MaxFilesPerDir = DirFileLimits{General: 1}
+	cfg.Disabled = []string{"arch.dir.files"}
+	if got := archFindings(t, cfg, root); countRule(got, "arch.dir.files") != 0 {
+		t.Fatal("disabled: [arch.dir.files] must silence the rule")
+	}
+
+	cfg.Disabled = nil
+	cfg.Architecture.MaxFilesPerDir = DirFileLimits{General: 1, Globs: map[string]int{"apps/api/modules/auth": 0}}
+	if got := archFindings(t, cfg, root); countRule(got, "arch.dir.files") != 0 {
+		t.Fatal("a zero glob must opt the directory out, not fall back to the general limit")
+	}
+}
+
+func TestMaxFilesPerDirAcceptsScalarAndMap(t *testing.T) {
+	dir := t.TempDir()
+	scalar := "architecture:\n  maxFilesPerDir: 12\n"
+	if err := writeTemp(filepath.Join(dir, ".filet.yml"), scalar); err != nil {
+		t.Fatal(err)
+	}
+	cfg, _, err := LoadConfig(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Architecture.MaxFilesPerDir.General != 12 || len(cfg.Architecture.MaxFilesPerDir.Globs) != 0 {
+		t.Fatalf("the scalar form must set the general limit, got %+v", cfg.Architecture.MaxFilesPerDir)
+	}
+
+	mapped := "architecture:\n  maxFilesPerDir:\n    \"apps/*\": 40\n    \".\": 10\n"
+	if err := writeTemp(filepath.Join(dir, ".filet.yml"), mapped); err != nil {
+		t.Fatal(err)
+	}
+	cfg, _, err = LoadConfig(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]int{"apps/*": 40, ".": 10}
+	if cfg.Architecture.MaxFilesPerDir.General != 0 || !maps.Equal(cfg.Architecture.MaxFilesPerDir.Globs, want) {
+		t.Fatalf("the map form must set per-glob limits, got %+v", cfg.Architecture.MaxFilesPerDir)
 	}
 }
