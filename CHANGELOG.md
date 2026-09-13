@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.1] — 2026-09-13
+
+### Fixed
+- `action.yml`'s default `version` input and the README pins now match the
+  release; v0.17.0 shipped with them still pinned to v0.16.0.
+
 ## [0.17.0] — 2026-09-13
 
 ### Added
