@@ -3,6 +3,7 @@ package filet
 import (
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -40,6 +41,8 @@ func Scan(cfg *Config, target string) ([]SourceFile, error) {
 			return nil
 		case d.IsDir():
 			return skipDir(cfg, path, target, d.Name())
+		case ignoredPath(cfg.Ignore, filepath.ToSlash(RootRelative(cfg.root, path))):
+			return nil
 		case !slices.Contains(cfg.Extensions, filepath.Ext(d.Name())):
 			return nil
 		}
@@ -55,10 +58,41 @@ func skipDir(cfg *Config, path, target, name string) error {
 	if path == target {
 		return nil
 	}
-	if slices.Contains(cfg.Ignore, name) || isHidden(name) {
+	rel := filepath.ToSlash(RootRelative(cfg.root, path))
+	if slices.Contains(cfg.Ignore, name) || isHidden(name) || ignoredPath(cfg.Ignore, rel) {
 		return filepath.SkipDir
 	}
 	return nil
+}
+
+// isPathPattern reports whether an ignore entry targets a path relative to the
+// config root rather than a bare directory name.
+func isPathPattern(entry string) bool {
+	return strings.ContainsAny(entry, "/*")
+}
+
+func ignoredPath(ignore []string, rel string) bool {
+	for _, ig := range ignore {
+		if isPathPattern(ig) && matchesIgnorePattern(ig, rel) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesIgnorePattern(ig, rel string) bool {
+	if ok, _ := path.Match(ig, rel); ok {
+		return true
+	}
+	if strings.HasPrefix(rel, strings.TrimSuffix(ig, "/**")+"/") {
+		return true
+	}
+	for dir := path.Dir(rel); dir != "." && dir != "/"; dir = path.Dir(dir) {
+		if ok, _ := path.Match(ig, dir); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func isHidden(name string) bool {
