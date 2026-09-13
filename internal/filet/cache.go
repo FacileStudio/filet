@@ -76,7 +76,7 @@ func (c *Config) identity() string {
 // the on-disk schema stays otherwise compatible; the version is part of every
 // key, so a bump silently invalidates the whole store instead of serving
 // findings a different rule set would not produce.
-const configSchemaVersion = "2"
+const configSchemaVersion = "3"
 
 // cacheKey hashes its parts into a deterministic cache lookup key.
 func cacheKey(parts ...string) string {

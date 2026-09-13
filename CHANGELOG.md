@@ -4,6 +4,22 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.1] — 2026-09-13
+
+### Changed
+- `go.leak.resource` resolves module imports from export data instead of
+  type-checking the whole dependency graph from source. The previous
+  approach asked `go/packages` to compile every dependency, which takes
+  minutes on a real module; the new path decodes each package's `.a`
+  export file once via `golang.org/x/tools/go/gcexportdata`.
+- The module importer is now memoized per module root. A whole-repo check
+  walks hundreds of directories of the same module, and each one used to pay
+  a full `go list` and export-data load again; it now loads each module once.
+
+### Fixed
+- The cache schema version bumped to 3, so the stale on-disk store from the
+  v0.18.0 importer cannot be served by the new export-data path.
+
 ## [0.18.0] — 2026-09-13
 
 ### Fixed
