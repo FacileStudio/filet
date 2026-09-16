@@ -8,6 +8,9 @@ import "strings"
 // a URL — in a Svelte template or a help string it is text, not a trailing
 // comment, and stripping it would corrupt the very thing the page tells the
 // user to type.
+//
+// For braceless languages (shell, python, ruby), # is a comment marker only when
+// it's not part of a shell parameter expansion like $#, $*, $@, $? etc.
 func trailingComment(ext, stripped string) bool {
 	marker := "//"
 	if braceless[ext] {
@@ -29,6 +32,15 @@ func trailingComment(ext, stripped string) bool {
 			continue
 		case ':':
 			search = i + 2
+			continue
+		}
+		// In braceless languages (shell, python, ruby), a '#' that follows '$'
+		// might be part of a shell parameter expansion ($#, $*, $@, $? etc.)
+		// and thus not a comment. The '$' marker is unique to shell,
+		// so we only need this check for braceless languages.
+		if braceless[ext] && stripped[i-1] == '$' {
+			// $# etc. are shell expansions, not comments, so skip them
+			search = i + 1
 			continue
 		}
 		return strings.TrimSpace(stripped[:i]) != ""
@@ -67,7 +79,7 @@ func stripLine(line string, st lineState) (string, lineState) {
 			i = step.next
 		}
 	}
-	return b.String(), lineState{raw: cs.quote == '`', block: cs.block, rustRaw: cs.rustRaw, rustHashes: cs.rustHashes}
+	return b.String(), lineState{raw: cs.quote == '`', block: cs.block, rustRaw: st.rustRaw, rustHashes: st.rustHashes}
 }
 
 func peek(line string, i int) byte {
