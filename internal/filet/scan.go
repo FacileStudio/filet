@@ -21,21 +21,18 @@ type SourceFile struct {
 }
 
 // Scan walks target and returns every file matching the configured extensions.
+// A single file is walked like any other path rather than short-circuited, so
+// an explicitly named file is held to the same extensions and ignore patterns a
+// directory sweep applies. The special case that used to sit here is what let
+// `filet check README.md` fail a Go filename pattern: the walk filtered by
+// extension and the single-path branch did not.
 func Scan(cfg *Config, target string) ([]SourceFile, error) {
-	info, err := os.Stat(target)
-	if err != nil {
+	if _, err := os.Stat(target); err != nil {
 		return nil, err
-	}
-	if !info.IsDir() {
-		f, err := readSource(cfg, target)
-		if err != nil {
-			return nil, err
-		}
-		return []SourceFile{f}, nil
 	}
 
 	var files []SourceFile
-	err = filepath.WalkDir(target, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(target, func(path string, d fs.DirEntry, err error) error {
 		switch {
 		case err != nil:
 			return nil
