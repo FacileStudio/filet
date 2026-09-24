@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   directory walk filtered by extension and the single-path branch did not. A
   file is now walked like any other path, so the two agree by construction, and
   `filet clean <path>` is fixed with it since both route through `Scan`.
+- `gen.comment.inline` no longer reads a shell parameter expansion as an inline
+  comment, so `$0`, `$#`, `$?` and the brace forms stop being reported as
+  trailing code comments in shell scripts.
 
 ## [0.18.1] — 2026-09-13
 
