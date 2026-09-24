@@ -4,14 +4,15 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.18.2] — 2026-09-23
 
 ### Fixed
 - An explicitly named path is held to the configured `extensions` and ignore
   patterns instead of bypassing them. `filet check README.md` in a Go-only repo
   used to run the Go filename pattern against the README and fail it: the
   directory walk filtered by extension and the single-path branch did not. A
-  file is now walked like any other path, so the two agree by construction.
+  file is now walked like any other path, so the two agree by construction, and
+  `filet clean <path>` is fixed with it since both route through `Scan`.
 
 ## [0.18.1] — 2026-09-13
 
