@@ -44,19 +44,14 @@ func parallelFor(n, workers int, fn func(int)) {
 	if n <= 0 || workers <= 0 {
 		return
 	}
-	jobs := make(chan int)
+	jobs := make(chan int, n)
 	var wg sync.WaitGroup
 	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for i := range jobs {
 				fn(i)
 			}
-		}()
-	}
-	for i := 0; i < n; i++ {
-		jobs <- i
+		})
 	}
 	close(jobs)
 	wg.Wait()

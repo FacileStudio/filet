@@ -12,8 +12,8 @@ import (
 // is best-effort: an unparseable file is reported by the check, not rewritten.
 
 func TestCleanRemovesInBodySentenceComment(t *testing.T) {
-	f := cleanSource(t, "clean.go", "package main\n\nfunc f() {\n\t// this does a thing.\n\tx := 1\n}\n")
-	res := CleanFile(cleanCfg(), f)
+	f := source(t, "clean.go", "package main\n\nfunc f() {\n\t// this does a thing.\n\tx := 1\n}\n")
+	res := CleanFile(DefaultConfig(), f)
 	got := strings.Join(res.Lines, "\n")
 	if strings.Contains(got, "this does a thing.") {
 		t.Fatalf("in-body sentence comment survived:\n%s", got)
@@ -27,8 +27,8 @@ func TestCleanRemovesInBodySentenceComment(t *testing.T) {
 }
 
 func TestCleanRemovesInBodyBlockComment(t *testing.T) {
-	f := cleanSource(t, "clean.go", "package main\n\nfunc f() {\n\t/* one\n\t   two */\n\tx := 1\n}\n")
-	res := CleanFile(cleanCfg(), f)
+	f := source(t, "clean.go", "package main\n\nfunc f() {\n\t/* one\n\t   two */\n\tx := 1\n}\n")
+	res := CleanFile(DefaultConfig(), f)
 	got := strings.Join(res.Lines, "\n")
 	if strings.Contains(got, "/*") || strings.Contains(got, "two */") {
 		t.Fatalf("in-body block comment survived:\n%s", got)
@@ -42,8 +42,8 @@ func TestCleanRemovesInBodyBlockComment(t *testing.T) {
 }
 
 func TestCleanKeepsCodeTrailingInBodyComment(t *testing.T) {
-	f := cleanSource(t, "clean.go", "package main\n\nfunc f() {\n\tx := 1 // note\n\ty := 2\n}\n")
-	res := CleanFile(cleanCfg(), f)
+	f := source(t, "clean.go", "package main\n\nfunc f() {\n\tx := 1 // note\n\ty := 2\n}\n")
+	res := CleanFile(DefaultConfig(), f)
 	got := strings.Join(res.Lines, "\n")
 	for _, keep := range []string{"x := 1", "y := 2"} {
 		if !strings.Contains(got, keep) {
@@ -59,8 +59,8 @@ func TestCleanKeepsCodeTrailingInBodyComment(t *testing.T) {
 }
 
 func TestCleanKeepsInBodyDirective(t *testing.T) {
-	f := cleanSource(t, "clean.go", "package main\n\nfunc f() {\n\t//nolint:complexity\n\tx := 1\n}\n")
-	res := CleanFile(cleanCfg(), f)
+	f := source(t, "clean.go", "package main\n\nfunc f() {\n\t//nolint:complexity\n\tx := 1\n}\n")
+	res := CleanFile(DefaultConfig(), f)
 	got := strings.Join(res.Lines, "\n")
 	if !strings.Contains(got, "//nolint:complexity") {
 		t.Fatalf("in-body directive was stripped:\n%s", got)

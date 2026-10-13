@@ -9,8 +9,6 @@ func TestShellExpansionIsNotAnInlineComment(t *testing.T) {
 		return countRule(CheckGeneric(cfg, f), "gen.comment.inline") > 0
 	}
 
-	// $# (argument count) and other $ expansions are shell parameter expansions
-	// not comments. These lines must not be flagged.
 	for _, ok := range []string{
 		`[ $# -eq 1 ] && pane_id="$1"`,
 		`echo "got $# args"`,
@@ -22,7 +20,6 @@ func TestShellExpansionIsNotAnInlineComment(t *testing.T) {
 		}
 	}
 
-	// Real inline comments should still be flagged.
 	for _, bad := range []string{
 		`echo hello # this is a real comment`,
 		`x=1 # another real comment`,

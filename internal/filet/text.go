@@ -23,24 +23,13 @@ func trailingComment(ext, stripped string) bool {
 			return false
 		}
 		i += search
+		search = i + len(marker)
 		if i == 0 {
-			return false
-		}
-		switch stripped[i-1] {
-		case '\\':
-			search = i + 2
-			continue
-		case ':':
-			search = i + 2
 			continue
 		}
-		// In braceless languages (shell, python, ruby), a '#' that follows '$'
-		// might be part of a shell parameter expansion ($#, $*, $@, $? etc.)
-		// and thus not a comment. The '$' marker is unique to shell,
-		// so we only need this check for braceless languages.
-		if braceless[ext] && stripped[i-1] == '$' {
-			// $# etc. are shell expansions, not comments, so skip them
-			search = i + 1
+		before := stripped[i-1]
+		skip := before == '\\' || before == ':' || (braceless[ext] && before == '$')
+		if skip {
 			continue
 		}
 		return strings.TrimSpace(stripped[:i]) != ""
