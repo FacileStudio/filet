@@ -31,6 +31,28 @@ var presets = map[string]func(*Config){
 		c.Style.BanGlobalMutable = false
 		c.Style.BanInit = false
 	},
+	"facile": facilePreset,
+}
+
+// facilePreset is the Facile suite standard: the filet.yml that Sonde, Capsule
+// and Sablier share, so a suite repository's config reduces to `preset: facile`
+// plus its own exceptions. The values are pinned here rather than read from the
+// defaults, so moving a default never moves the suite.
+func facilePreset(c *Config) {
+	c.Ignore = []string{"node_modules", "vendor", "build", "dist", "testdata", "coverage"}
+	c.Extensions = []string{".go", ".ts", ".svelte", ".sh"}
+	c.Limits = Limits{
+		FileLines: 250, FuncsPerFile: 8, FuncLines: 30, FuncStatements: 25, LineLength: 120,
+		Params: 5, Returns: 3, Nesting: 4, Complexity: 10, StructFields: 12, InterfaceMethods: 4,
+	}
+	c.Architecture.RequiredDirs = []string{"apps/api", "apps/client"}
+	c.Architecture.RequiredFiles = map[string][]string{"apps/api/modules/*": {"router.go"}}
+	c.Style = Style{
+		BanInlineComments: true, BanTODO: true, RequireDocComments: true, BanGlobalMutable: true,
+		BanInit: true, BanTrailingSpace: true, Format: true,
+	}
+	c.Disabled = []string{"gen.line.long"}
+	c.FailOn = "error"
 }
 
 // Preset returns the limit-seeding function registered under name.
