@@ -72,3 +72,11 @@ func usageDescCol(line string) int {
 	}
 	return -1
 }
+
+func TestUsageListsTheBaselineFlag(t *testing.T) {
+	var buf bytes.Buffer
+	RenderUsage(&buf)
+	if !strings.Contains(buf.String(), "-baseline write|update") {
+		t.Fatal("help must document check's -baseline flag")
+	}
+}
