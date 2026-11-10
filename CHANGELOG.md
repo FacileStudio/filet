@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `preset: facile`, the Facile suite standard that Sonde, Capsule and Sablier's
+  `filet.yml` agree on: their limits, every style ban, extensions, ignore list,
+  `requiredDirs`, `requiredFiles: {"apps/api/modules/*": [router.go]}`,
+  `disabled: [gen.line.long]` and `failOn: error`. On a copy of Sonde it gives
+  the same findings as Sonde's explicit config.
+- Ratchet mode: `filet check -baseline write|update` and `.filet-baseline.json`
+  (or `baseline:` in `filet.yml`). Findings the baseline covers render as
+  `info (baseline)` and stop gating; a grown or new `(rule, path)` fails; a
+  dropped count fails as the new rule `gen.baseline.stale` until
+  `-baseline update` lowers the file.
+- `gen.config.inert`: a warning on `filet.yml` for a key it switches on that no
+  extension in `extensions:` can fire, such as `banGlobalMutable` in a
+  TypeScript-only repository.
+
+### Fixed
+- `parallelFor` never sent a job to its workers, so on `main` since 83965e7
+  every per-file and per-package check ran nothing and `filet check` reported
+  zero findings on any tree.
+- A full-line comment that quotes `//` (`// a directive (//nolint:) ...`) was
+  reported as an inline comment trailing code.
+
 ## [0.18.2] — 2026-09-23
 
 ### Fixed

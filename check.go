@@ -16,6 +16,7 @@ type commonFlags struct {
 	target   string
 	noCache  bool
 	cacheDir string
+	baseline string
 }
 
 func parseCommon(name string, args []string) (*commonFlags, error) {
@@ -26,6 +27,7 @@ func parseCommon(name string, args []string) (*commonFlags, error) {
 	fs.BoolVar(&c.quiet, "quiet", false, "only print the summary")
 	fs.BoolVar(&c.noCache, "no-cache", false, "ignore the on-disk findings cache")
 	fs.StringVar(&c.cacheDir, "cache-dir", "", "override the findings cache directory")
+	fs.StringVar(&c.baseline, "baseline", "", "ratchet baseline: write or update "+filet.BaselineName)
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
@@ -91,7 +93,13 @@ func analyze(name string, args []string, roast bool) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 2
 	}
-	return emit(cfg, report, c, roast)
+	report.Findings = append(report.Findings, filet.InertKeys(cfg, c.target)...)
+	shown, gate, err := filet.Ratchet(cfg, c.target, c.baseline, report)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	return emit(cfg, shown, gate, c, roast)
 }
 
 func docker(args []string) int {
@@ -114,7 +122,7 @@ func docker(args []string) int {
 		fmt.Fprintln(os.Stderr, "no Dockerfile found under "+c.target)
 		return 0
 	}
-	return emit(cfg, report, c, true)
+	return emit(cfg, report, report, c, true)
 }
 
 // clean applies every line-level auto-fix the project's rules ask for, writing
@@ -194,7 +202,7 @@ func cleanDetail(s filet.CleanStats) string {
 	return strings.Join(parts, ", ")
 }
 
-func emit(cfg *filet.Config, report filet.Report, c *commonFlags, roast bool) int {
+func emit(cfg *filet.Config, report, gate filet.Report, c *commonFlags, roast bool) int {
 	if roast {
 		filet.Roast(report.Findings)
 	}
@@ -205,7 +213,7 @@ func emit(cfg *filet.Config, report filet.Report, c *commonFlags, roast bool) in
 	if strings.EqualFold(cfg.FailOn, "never") {
 		return 0
 	}
-	if filet.FailLevel(cfg, report) {
+	if filet.FailLevel(cfg, gate) {
 		return 1
 	}
 	return 0

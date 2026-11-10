@@ -78,16 +78,35 @@ failOn: error
 ### Presets
 
 `preset:` seeds the limits before your own keys are applied, so anything you write explicitly still
-wins. Three exist:
+wins. Four exist:
 
 | Preset | funcsPerFile | funcLines | funcStatements | fileLines | nesting | lineLength | complexity |
 |---|---|---|---|---|---|---|---|
 | `default` | 8 | 30 | 25 | 250 | 4 | 120 | 10 |
 | `relaxed` | off | 60 | 40 | 400 | 5 | 120 | 15 |
 | `epitech` | 5 | 20 | 15 | 400 | 3 | 80 | 10 |
+| `facile` | 8 | 30 | 25 | 250 | 4 | 120 | 10 |
 
 `default` also turns on `banInlineComments`, `banTODO`, `banInit` and `banGlobalMutable`;
 `relaxed` turns all four off.
+
+`facile` is the Facile suite standard, the `filet.yml` Sonde, Capsule and Sablier share: the
+numbers above plus `params: 5`, `returns: 3`, `structFields: 12`, `interfaceMethods: 4`, every
+style ban on, `extensions: [.go, .ts, .svelte, .sh]`, the suite's `ignore` list,
+`requiredDirs: [apps/api, apps/client]`, `requiredFiles: {"apps/api/modules/*": [router.go]}`,
+`disabled: [gen.line.long]` and `failOn: error`. A suite repository's config reduces to
+`preset: facile` plus its own exceptions. A list or map you write replaces the preset's whole value
+rather than merging into it, so an exception to `requiredFiles` restates the shared glob:
+
+```yaml
+preset: facile
+architecture:
+  requiredFiles:
+    "apps/api/modules/*": [router.go]
+    "apps/api/modules/docs": []   # static OpenAPI spec, no HTTP routes
+```
+
+The same holds for `disabled:`: a repo that disables one more rule lists `gen.line.long` again.
 
 `epitech` is the real norm's numbers, and they were written for C: no closures, no `if err != nil`,
 no method receivers. On Go or TypeScript they fire constantly on code that is fine. Excellent as a
@@ -149,6 +168,18 @@ Thirty is a sensible general cap — past that, a directory is usually a dumping
 than a module. It is a warning, not an error: no established tool enforces a hard per-directory
 count, so treat it as a prompt to group, not a broken build.
 
+### Keys that cannot fire
+
+Some keys drive rules that only run on some languages. `returns`, `structFields`,
+`interfaceMethods`, `requireDocComments`, `banGlobalMutable`, `banInit` and `format` are Go only;
+`funcLines`, `funcStatements`, `params` and `complexity` need Go or a tree-sitter grammar (`.rs`);
+`funcsPerFile` needs Go or a language filet can spot a function declaration in. When `filet.yml`
+switches one of them on and no entry in `extensions:` can fire it, `filet check` reports
+`gen.config.inert` as a warning on the config file, at the key's line. A config is a statement about
+the code, and `banGlobalMutable: true` in a TypeScript-only repository states a rule nothing
+enforces. Only keys written in the file count, not those a preset or the defaults set, and only a
+run over the config root reports them.
+
 ## Checking code
 
 Generic rules run on every configured extension. Go files additionally go through `go/ast`, so
@@ -174,6 +205,36 @@ near-instant; edit one file and only its own tier re-runs. The cache lives in
 `$XDG_CACHE_HOME/filet` (else `~/.cache/filet`), is one file per project, and self-invalidates when
 `filet.yml`, the config or the tool changes, so a stale entry is never served. Turn it off with
 `-no-cache`, move it with `-cache-dir <dir>` or `cache.enabled: false` in `filet.yml`.
+
+### Ratchet
+
+A baseline lets a repository with standing findings gate on new ones without fixing the old ones
+first, and makes sure the old ones only ever go down.
+
+```sh
+filet check -baseline write .     # record today's findings in .filet-baseline.json
+filet check .                     # fail only on what the baseline does not cover
+filet check -baseline update .    # lower the recorded counts after a cleanup
+```
+
+The file records, for each `(rule, path)`, how many findings at or above `failOn` it holds. Counts,
+not line numbers, so an edit elsewhere in a file does not invalidate it. When the file exists at
+the config root, or `filet.yml` names one with `baseline: <path>`, every `filet check`:
+
+- shows a finding the baseline covers as `info` with the suffix `(baseline)`, and leaves it out of
+  the exit code;
+- fails as usual when a `(rule, path)` count grows past its baseline, or a new `(rule, path)`
+  appears. All findings of a grown path keep their severity, since a count cannot say which one is
+  new;
+- fails with `gen.baseline.stale` when a count dropped, until `-baseline update` rewrites the file.
+  `update` only lowers counts and drops entries; it never raises one or adds one. That is the
+  ratchet: the file can only shrink. `write` records the current state from scratch.
+
+A scoped run, `filet check apps/api`, compares and rewrites only the entries under that path. A
+baseline that `filet.yml` names but that does not exist is an error, not a silent pass.
+
+The known cost of counting per path: renaming a file shows as one stale entry for the old path plus
+one new entry for the new one. Rename, then run `filet check -baseline write` in the same commit.
 
 ### Output formats
 

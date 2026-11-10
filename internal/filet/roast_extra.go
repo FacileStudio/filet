@@ -5,6 +5,14 @@ import "maps"
 // punchlinesExtra holds the punchlines for the newer rules, split out of
 // roast.go to keep that data-heavy map under the per-file line limit.
 var punchlinesExtra = map[string][]string{
+	"gen.config.inert": {
+		"A rule nobody can break is a rule nobody is following.",
+		"The config promises a check the code never gets.",
+	},
+	"gen.baseline.stale": {
+		"You paid off debt and forgot to write it down.",
+		"The ratchet only clicks one way. Click it.",
+	},
 	"lsp.error": {
 		"Your toolchain already knows, and now so does the report.",
 		"This is the same red squiggly you have been ignoring in the editor.",
