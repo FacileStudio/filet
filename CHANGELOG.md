@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.2] — 2026-11-10
+
+### Fixed
+- `filet check` crashed with `panic: cannot decode "context", export data
+  version 4 is greater than maximum supported version 2` when filet had been
+  built with an older Go than the toolchain that wrote the package export data
+  it reads. `go/types` panics there instead of returning an error. The type
+  check now recovers and degrades to no type information, so only
+  `go.leak.resource` is skipped, with its usual notice.
+
 ## [0.19.1] — 2026-11-10
 
 ### Changed
