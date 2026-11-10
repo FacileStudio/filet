@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("gate:\n  disable: !000000000\n000")

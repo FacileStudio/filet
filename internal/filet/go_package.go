@@ -37,7 +37,7 @@ func checkGoFiles(cfg *Config, goFiles []SourceFile) []Finding {
 // are reported and the offending file skipped.
 func checkGoDir(cfg *Config, files []SourceFile) []Finding {
 	pd := parseGoFiles(files)
-	out := pd.findings
+	out := append(pd.findings, fuzzHints(cfg, pd)...)
 	for _, grp := range groupByPackage(pd.files) {
 		info := typeInfoFor(cfg, pd.fset, grp.files)
 		out = append(out, checkGoGroup(cfg, pd.fset, pd.byPath, grp, info)...)

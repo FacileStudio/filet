@@ -392,6 +392,65 @@ filet test -- -run TestParse -v
 filet test -format json
 ```
 
+## Fuzzing
+
+`filet fuzz` finds every fuzz target under a path and runs it, one target at a time:
+
+- Go: every `func Fuzz*(f *testing.F)` in a `_test.go` file.
+- Rust: every `fuzz/fuzz_targets/*.rs`, run through `cargo fuzz` from the crate root.
+
+| Mode | Go | Rust |
+|---|---|---|
+| `-mode seeds` (default) | `go test -run '^FuzzX$' .` replays the seeds and `testdata/fuzz/` | `cargo fuzz run x -- -runs=0` |
+| `-mode smoke` | `go test -run '^$' -fuzz '^FuzzX$' -fuzztime 30s .` | `cargo fuzz run x -- -max_total_time=30` |
+
+Every run is bounded. `-fuzztime` (default `30s`) caps one target in smoke mode, and `-budget`
+(default `5m`) stops starting new targets once the total is spent. A target whose tool is missing
+(`go`, or `cargo-fuzz` for Rust) is reported as skipped with the reason, never as passed.
+
+```sh
+filet fuzz -list .
+filet fuzz .
+filet fuzz -mode smoke -fuzztime 10s -budget 2m .
+filet fuzz -format json .
+```
+
+The command exits 1 when a target fails and prints the path of the failing input Go wrote under
+`testdata/fuzz/`. Commit that file: from then on, seeds mode replays it as a regression test.
+
+`test.fuzz.missing` is an opt-in hint. Set `style.hintFuzz: true` and filet reports, at `info`, each
+function named `Parse*`, `Decode*` or `Unmarshal*` whose first parameter is `[]byte`, `string` or
+`io.Reader`, in a package with no `Fuzz*` target.
+
+## The gate
+
+`filet gate` runs a repository's whole quality gate in one command, in this order:
+
+| Phase | Step | Runs when | Command |
+|---|---|---|---|
+| `format` | `gofmt` | `go.mod` | `gofmt -l .` (fails when it lists a file) |
+| `format` | `cargo-fmt` | `Cargo.toml` | `cargo fmt --check` |
+| `check` | `check` | always | `filet check`, in process |
+| `analyze` | `vet` | `go.mod` | `go vet ./...` |
+| `analyze` | `staticcheck` | `go.mod` | `staticcheck ./...` |
+| `analyze` | `clippy` | `Cargo.toml` | `cargo clippy -- -D warnings` |
+| `analyze` | `bun-check` | a `check` script in `package.json` | `bun run check` |
+| `test` | one per suite | as `filet test` detects | the `filet test` command, with `-race` for Go |
+| `fuzz` | `go`, `rust` | a fuzz target exists | `filet fuzz -mode seeds` |
+| `douane` | `douane` | always | `douane scan -fail critical -scope prod .` |
+
+The gate stops at the first failed step and lists the rest as `not-run`; `-keep-going` runs every
+step. A step whose tool is not on `PATH` is `skipped: <tool> not found`, never passed. The command
+exits 0 only when no step failed, and prints one table of step, status and duration.
+`-format json` prints the same table as one JSON document (`{"passed": bool, "steps": [...]}`) on
+stdout and moves the step output to stderr.
+
+```yaml
+gate:
+  disable: [douane]          # a phase or a step name
+  requireTools: [staticcheck] # a missing tool fails the gate instead of skipping
+```
+
 ## In CI
 
 The repository ships a composite action. Annotations are unconditional; SARIF and the Antenne
@@ -404,6 +463,9 @@ report are opt-in.
     path: .
     fail-on: error
 ```
+
+Set `command: gate` to run the whole gate instead of `filet check`. The gate needs every tool it
+should run on the runner's `PATH`; the ones it does not find are reported as skipped.
 
 It installs filet with `go install`, so the runner needs a Go toolchain — `ubuntu-latest` ships
 one, and any job that already uses `actions/setup-go` is covered. It writes the annotations, puts

@@ -68,7 +68,7 @@ func TestUndottedConfigWinsAndTheDottedOneStillLoads(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadConfig: %v", err)
 	}
-	if cfg.Limits.FuncLines != 7 {
+	if filepath.Base(path) != ".filet.yml" || cfg.Limits.FuncLines != 7 {
 		t.Errorf("a repository still on the dotted name must keep working, got funcLines %d", cfg.Limits.FuncLines)
 	}
 

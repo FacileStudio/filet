@@ -39,6 +39,11 @@ var punchlinesExtra = map[string][]string{
 		"The if-block is there for a reason. Use it or delete it.",
 		"nil, nil compiles but does not compute.",
 	},
+	"test.fuzz.missing": {
+		"A parser nobody fuzzed is a parser the internet will fuzz for you.",
+		"Three hand-picked test inputs are not a threat model.",
+		"go test -fuzz is free. Production crashes are not.",
+	},
 }
 
 // mergePunchlines combines two rule-to-punchline maps into one lookup.

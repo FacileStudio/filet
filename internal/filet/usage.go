@@ -81,6 +81,8 @@ func usageSections() []usageSection {
 			{cmd: "filet clean", detail: "[-dry-run] [path]", desc: "Apply the auto-fixable checks in place."},
 			{cmd: "filet docker", detail: "[flags] [path]", desc: "Roast every Dockerfile found under path."},
 			{cmd: "filet test", detail: "[flags] [path]", desc: "Detect and run the project's test suites."},
+			{cmd: "filet fuzz", detail: "[flags] [path]", desc: "Replay or smoke-fuzz Go and Rust fuzz targets."},
+			{cmd: "filet gate", detail: "[flags] [path]", desc: "Run format, check, analyzers, tests, fuzz seeds, douane."},
 			{cmd: "filet init", detail: "[flags] [path]", desc: "Scaffold filet.yml (-preset relaxed|epitech)."},
 			{cmd: "filet rules", detail: "", desc: "List every rule id."},
 			{cmd: "filet version", detail: "", desc: "Print the version."},
@@ -92,15 +94,9 @@ func usageSections() []usageSection {
 			{cmd: "-format", detail: "auto|text|lipgloss|line|json|sarif|github", desc: "Output format. Default: auto."},
 			{cmd: "-fail", detail: "info|warn|error|never", desc: "Severity that makes the command fail."},
 			{cmd: "-quiet", detail: "", desc: "Print the summary only."},
+			{cmd: "-baseline", detail: "write|update", desc: "check only: write or lower the ratchet baseline."},
 		}},
-		{title: "Examples", rows: []usageRow{
-			{cmd: "filet check .", detail: "", desc: ""},
-			{cmd: "filet roast ./apps ./pkg", detail: "", desc: ""},
-			{cmd: "filet clean -dry-run .", detail: "", desc: ""},
-			{cmd: "filet docker .", detail: "", desc: ""},
-			{cmd: "filet test ./apps/api", detail: "", desc: ""},
-			{cmd: "filet init -preset relaxed", detail: "", desc: ""},
-		}},
+		{title: "Examples", rows: usageExamples()},
 	}
 }
 
