@@ -531,4 +531,4 @@ go install github.com/FacileStudio/filet@v0.18.1
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+filet is licensed under the GNU General Public License v3.0 only (`GPL-3.0-only`); see [LICENSE](LICENSE).
