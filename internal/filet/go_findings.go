@@ -87,10 +87,25 @@ func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Inf
 		Uses:  make(map[*ast.Ident]types.Object),
 	}
 	conf := &types.Config{Importer: importerFor(fset, files[0]), Error: func(err error) {}}
-	if _, err := conf.Check(files[0].Name.Name, fset, files, info); err != nil && len(info.Types) == 0 {
+	if !checkTypes(conf, fset, files, info) {
 		return nil
 	}
 	return info
+}
+
+// checkTypes type-checks files into info and reports whether anything usable
+// resolved. go/types panics, rather than returning an error, when an importer
+// meets export data written by a newer toolchain than the one filet was built
+// with; that panic is recovered here so the caller degrades to no type info
+// instead of crashing the whole run.
+func checkTypes(conf *types.Config, fset *token.FileSet, files []*ast.File, info *types.Info) (ok bool) {
+	defer func() {
+		if recover() != nil {
+			ok = false
+		}
+	}()
+	_, err := conf.Check(files[0].Name.Name, fset, files, info)
+	return err == nil || len(info.Types) > 0
 }
 
 // ensureGoRoot points the shared build context at the resolved toolchain exactly
