@@ -10,7 +10,7 @@ import (
 func WriteHeading(w io.Writer, s Suite) {
 	p, g := painter(Colorize(w)), GlyphsFor(w)
 	fmt.Fprintf(w, "\n%s %s %s %s\n",
-		p(cyan, g.Run), p(bold, s.Name), p(dim, g.Sep), p(grey, s.Command()))
+		p(cyan, g.Run), p(bold, s.Label()), p(dim, g.Sep), p(grey, s.Command()))
 }
 
 // WriteResults prints the per-suite summary and returns the worst exit code.
@@ -19,7 +19,7 @@ func WriteResults(w io.Writer, results []Result) int {
 	name, worst, passed := 0, 0, 0
 	total := time.Duration(0)
 	for _, r := range results {
-		name = max(name, len(r.Suite))
+		name = max(name, len(withUnit(r.Suite, r.Unit)))
 		total += r.Duration
 	}
 
@@ -31,7 +31,7 @@ func WriteResults(w io.Writer, results []Result) int {
 		worst = max(worst, r.ExitCode)
 		fmt.Fprintf(w, "  %s %s  %s  %s\n",
 			p(resultColor(r), resultMark(g, r)),
-			p(bold, pad(r.Suite, name)),
+			p(bold, pad(withUnit(r.Suite, r.Unit), name)),
 			p(dim, padLeft(r.Duration.Round(time.Millisecond).String(), 7)),
 			p(grey, r.Command))
 		if r.Err != "" {

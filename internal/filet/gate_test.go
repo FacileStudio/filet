@@ -38,11 +38,11 @@ func runFakeGate(t *testing.T, proj string, opts GateOptions) ([]StepResult, []s
 	if err != nil {
 		t.Fatal(err)
 	}
-	steps, err := GateSteps(cfg, proj)
+	plan, err := PlanGate(cfg, proj)
 	if err != nil {
 		t.Fatal(err)
 	}
-	results := RunGate(steps, opts, io.Discard)
+	results := RunGate(plan.Steps, opts, io.Discard)
 	raw, _ := os.ReadFile(os.Getenv("GATE_LOG"))
 	return results, strings.Split(strings.TrimSpace(string(raw)), "\n")
 }
@@ -162,5 +162,24 @@ func TestGateSettingsReadsTheGateBlock(t *testing.T) {
 	gc, err := cfg.GateSettings()
 	if err != nil || strings.Join(gc.Disable, ",") != "douane" || strings.Join(gc.RequireTools, ",") != "staticcheck" {
 		t.Fatalf("gate block = %+v, %v", gc, err)
+	}
+}
+
+func TestGateSettingsRejectsAnUnknownName(t *testing.T) {
+	for body, want := range map[string]string{
+		"gate:\n  disable: [vett]\n":            `disable: unknown step "vett" (valid: analyze, bun, bun-check,`,
+		"gate:\n  requireTools: [staticchek]\n": `requireTools: unknown tool "staticchek" (valid: bun, cargo,`,
+	} {
+		dir := t.TempDir()
+		if err := writeTemp(filepath.Join(dir, "filet.yml"), body); err != nil {
+			t.Fatal(err)
+		}
+		cfg, _, err := LoadConfig(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := cfg.GateSettings(); err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("%q: err = %v, want %q", body, err, want)
+		}
 	}
 }

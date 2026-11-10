@@ -22,6 +22,7 @@ const (
 // StepResult is one row of the gate or fuzz summary table.
 type StepResult struct {
 	Step     string        `json:"step"`
+	Unit     string        `json:"unit,omitempty"`
 	Status   StepStatus    `json:"status"`
 	Command  string        `json:"command,omitempty"`
 	Detail   string        `json:"detail,omitempty"`
@@ -31,21 +32,23 @@ type StepResult struct {
 
 // GateStep is one unit of work the gate runs. Phase and Name are both valid
 // targets for gate.disable; Tool, when set, must be on PATH for Run to start.
+// Unit is the path, relative to the gate target, that Run works in.
 type GateStep struct {
 	Phase   string
 	Name    string
 	Tool    string
+	Unit    string
 	Command string
 	Run     func(w io.Writer) (StepStatus, string)
 }
 
 // Label is the row name the summary prints: the phase, then the step name
-// when the two differ.
+// when the two differ, then the unit when it is not the target itself.
 func (s GateStep) Label() string {
 	if s.Name == "" || s.Name == s.Phase {
-		return s.Phase
+		return withUnit(s.Phase, s.Unit)
 	}
-	return s.Phase + ":" + s.Name
+	return withUnit(s.Phase+":"+s.Name, s.Unit)
 }
 
 // GateOptions tunes one gate run.
@@ -62,7 +65,7 @@ func RunGate(steps []GateStep, opts GateOptions, w io.Writer) []StepResult {
 	stopped := false
 	for _, s := range steps {
 		if stopped {
-			results = append(results, StepResult{Step: s.Label(), Status: StepNotRun, Command: s.Command,
+			results = append(results, StepResult{Step: s.Label(), Unit: s.Unit, Status: StepNotRun, Command: s.Command,
 				Detail: "an earlier step failed"})
 			continue
 		}
@@ -74,7 +77,7 @@ func RunGate(steps []GateStep, opts GateOptions, w io.Writer) []StepResult {
 }
 
 func runGateStep(s GateStep, cfg GateConfig, w io.Writer) StepResult {
-	res := StepResult{Step: s.Label(), Command: s.Command}
+	res := StepResult{Step: s.Label(), Unit: s.Unit, Command: s.Command}
 	if cfg.disables(s) {
 		res.Status, res.Detail = StepSkipped, "disabled by gate.disable"
 		return res
@@ -96,9 +99,17 @@ func runGateStep(s GateStep, cfg GateConfig, w io.Writer) StepResult {
 	return res
 }
 
-// GateSummary is the JSON document `filet gate -format json` prints.
+// GateSummary is the JSON document `filet fuzz -format json` prints.
 type GateSummary struct {
 	Passed bool         `json:"passed"`
+	Steps  []StepResult `json:"steps"`
+}
+
+// GateReport is the JSON document `filet gate -format json` prints: the
+// summary plus the units the gate covered.
+type GateReport struct {
+	Passed bool         `json:"passed"`
+	Units  []Unit       `json:"units"`
 	Steps  []StepResult `json:"steps"`
 }
 

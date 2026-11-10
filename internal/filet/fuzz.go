@@ -29,7 +29,7 @@ func DiscoverFuzzTargets(cfg *Config, target string) ([]FuzzTarget, error) {
 		case err != nil:
 			return nil
 		case d.IsDir():
-			return skipDir(cfg, path, target, d.Name())
+			return skipUnitDir(cfg, path, target, d.Name())
 		case strings.HasSuffix(path, "_test.go"):
 			out = append(out, goFuzzTargets(path)...)
 		case isRustFuzzTarget(path):

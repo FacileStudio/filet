@@ -12,6 +12,7 @@ func suiteStep(phase, name, tool string, s Suite) GateStep {
 		Phase:   phase,
 		Name:    name,
 		Tool:    tool,
+		Unit:    s.Unit,
 		Command: s.Command(),
 		Run: func(w io.Writer) (StepStatus, string) {
 			return statusOf(RunSuite(s, nil, w))
@@ -32,12 +33,12 @@ func statusOf(res Result) (StepStatus, string) {
 	}
 }
 
-func gofmtStep(dir string) GateStep {
-	s := Suite{Name: "gofmt", Dir: dir, Cmd: "gofmt", Args: []string{"-l", "."}}
+func gofmtStep(s Suite) GateStep {
 	return GateStep{
 		Phase:   "format",
 		Name:    "gofmt",
 		Tool:    "gofmt",
+		Unit:    s.Unit,
 		Command: s.Command(),
 		Run: func(w io.Writer) (StepStatus, string) {
 			var buf bytes.Buffer

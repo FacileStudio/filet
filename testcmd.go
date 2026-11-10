@@ -17,7 +17,11 @@ func test(args []string) int {
 	}
 	target, extra := splitTarget(fs.Args())
 
-	suites := filet.DetectSuites(target)
+	suites, err := discoverSuites(target)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
 	if len(suites) == 0 {
 		fmt.Fprintln(os.Stderr, "no test suite detected in "+target)
 		return 2
@@ -36,6 +40,15 @@ func test(args []string) int {
 		return 1
 	}
 	return 0
+}
+
+func discoverSuites(target string) ([]filet.Suite, error) {
+	cfg, path, err := filet.LoadConfig(target)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	scan, err := filet.DiscoverUnits(cfg, target)
+	return filet.AllSuites(scan.Units), err
 }
 
 func splitTarget(args []string) (string, []string) {

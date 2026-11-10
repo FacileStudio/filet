@@ -1,0 +1,8 @@
+{
+  "name": "client",
+  "private": true,
+  "scripts": {
+    "check": "svelte-check",
+    "test": "bun test"
+  }
+}

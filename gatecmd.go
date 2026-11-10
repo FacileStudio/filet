@@ -20,12 +20,7 @@ func gate(args []string) int {
 		fmt.Fprintf(os.Stderr, "-format: unknown format %q (use text or json)\n", *format)
 		return 2
 	}
-	cfg, gc, err := loadGate(target)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 2
-	}
-	steps, err := filet.GateSteps(cfg, target)
+	plan, gc, err := planGate(target)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 2
@@ -34,20 +29,37 @@ func gate(args []string) int {
 	if *format == "json" {
 		out = os.Stderr
 	}
-	results := filet.RunGate(steps, filet.GateOptions{KeepGoing: *keepGoing, Config: gc}, out)
-	return reportSteps(results, *format == "json", out)
+	results := filet.RunGate(plan.Steps, filet.GateOptions{KeepGoing: *keepGoing, Config: gc}, out)
+	filet.WriteUnits(out, plan.Units)
+	if *format == "json" {
+		return emitGate(results, plan.Units)
+	}
+	return reportSteps(results, false, out)
 }
 
-func loadGate(target string) (*filet.Config, filet.GateConfig, error) {
+func emitGate(results []filet.StepResult, units []filet.Unit) int {
+	doc := filet.GateReport{Passed: !filet.AnyFailed(results), Units: units, Steps: results}
+	if err := filet.WriteJSONValue(os.Stdout, doc); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	if !doc.Passed {
+		return 1
+	}
+	return 0
+}
+
+func planGate(target string) (filet.GatePlan, filet.GateConfig, error) {
 	cfg, path, err := filet.LoadConfig(target)
 	if err != nil {
-		return nil, filet.GateConfig{}, fmt.Errorf("%s: %w", path, err)
+		return filet.GatePlan{}, filet.GateConfig{}, fmt.Errorf("%s: %w", path, err)
 	}
 	gc, err := cfg.GateSettings()
 	if err != nil {
-		return nil, filet.GateConfig{}, fmt.Errorf("%s: gate: %w", path, err)
+		return filet.GatePlan{}, filet.GateConfig{}, fmt.Errorf("%s: gate: %w", path, err)
 	}
-	return cfg, gc, nil
+	plan, err := filet.PlanGate(cfg, target)
+	return plan, gc, err
 }
 
 func reportSteps(results []filet.StepResult, asJSON bool, out *os.File) int {

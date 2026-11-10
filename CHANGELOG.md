@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - filet is now licensed under `GPL-3.0-only` instead of MIT. v0.19.0 and every
   earlier release stay under MIT; the next release is the first under
   GPL-3.0-only.
+- `filet gate`, `filet test` and `filet fuzz` find every unit under the path:
+  each Go module, crate, and `package.json` with a `check` or `test` script,
+  honouring `ignore:` and never entering `node_modules`, `vendor`, `dist`,
+  `build`, `target`, `.git` or `testdata`. Each unit gets its own gate rows,
+  run from its directory (`format:gofmt apps/api`, `analyze:bun-check
+  apps/client`). The gate prints the units it covered above the table, and the
+  JSON form carries `units` and a `unit` on every step.
+
+### Fixed
+- `filet gate` at the root of a monorepo found only a root `go.mod`. On a suite
+  app (`apps/api/go.mod`, `apps/client/package.json`) it ran `check` and
+  `douane` and silently left out format, vet, staticcheck, the tests and the
+  fuzz seeds. A language with source files and no unit now fails its phases
+  with the reason (`3 .go files but no go.mod found`) instead of vanishing.
+- An unknown name in `gate.disable` or `gate.requireTools` is an error naming
+  the valid ones. A typo used to loosen the gate silently.
 
 ## [0.19.0] — 2026-11-10
 

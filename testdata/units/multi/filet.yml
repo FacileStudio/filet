@@ -1,0 +1,3 @@
+ignore: [legacy]
+lsp:
+  enabled: false

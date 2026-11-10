@@ -384,7 +384,10 @@ single-stage builds on a toolchain base image.
 | `deno.json` | `deno test -A` |
 | `pyproject.toml`, `pytest.ini`, `tox.ini` | `pytest -q` |
 
-Every suite it finds runs, and the summary at the end reports pass/fail and duration per suite.
+It looks in every unit under the path, the same walk `filet gate` uses (see [The gate](#the-gate)),
+and runs each suite from its unit's directory. Below the path a `package.json` counts only when it
+has a `check` or `test` script. Every suite it finds runs, and the summary at the end reports
+pass/fail and duration per suite, named with its unit (`go apps/api`).
 Extra arguments are forwarded to the underlying runner:
 
 ```sh
@@ -424,32 +427,57 @@ function named `Parse*`, `Decode*` or `Unmarshal*` whose first parameter is `[]b
 
 ## The gate
 
-`filet gate` runs a repository's whole quality gate in one command, in this order:
+`filet gate` runs a repository's whole quality gate in one command. It first finds every unit
+under the path, then runs each phase in order, every per-unit step from that unit's directory.
 
-| Phase | Step | Runs when | Command |
+A unit is a directory holding a `go.mod`, a `Cargo.toml`, a `package.json` with a `check` or `test`
+script, or another manifest `filet test` detects. The walk honours `ignore:` in `filet.yml` and
+never enters `node_modules`, `vendor`, `dist`, `build`, `target`, `.git`, `testdata` or a hidden
+directory. A crate under another crate is left to the outer one, as cargo does with workspace
+members. A suite app with `apps/api/go.mod` and `apps/client/package.json` gives two units.
+
+| Phase | Step | Runs per | Command |
 |---|---|---|---|
-| `format` | `gofmt` | `go.mod` | `gofmt -l .` (fails when it lists a file) |
-| `format` | `cargo-fmt` | `Cargo.toml` | `cargo fmt --check` |
-| `check` | `check` | always | `filet check`, in process |
-| `analyze` | `vet` | `go.mod` | `go vet ./...` |
-| `analyze` | `staticcheck` | `go.mod` | `staticcheck ./...` |
-| `analyze` | `clippy` | `Cargo.toml` | `cargo clippy -- -D warnings` |
-| `analyze` | `bun-check` | a `check` script in `package.json` | `bun run check` |
-| `test` | one per suite | as `filet test` detects | the `filet test` command, with `-race` for Go |
-| `fuzz` | `go`, `rust` | a fuzz target exists | `filet fuzz -mode seeds` |
-| `douane` | `douane` | always | `douane scan -fail critical -scope prod .` |
+| `format` | `gofmt` | Go module | `gofmt -l .` (fails when it lists a file) |
+| `format` | `cargo-fmt` | crate | `cargo fmt --check` |
+| `check` | `check` | repository | `filet check`, in process |
+| `analyze` | `vet` | Go module | `go vet ./...` |
+| `analyze` | `staticcheck` | Go module | `staticcheck ./...` |
+| `analyze` | `clippy` | crate | `cargo clippy -- -D warnings` |
+| `analyze` | `bun-check` | `package.json` with a `check` script | `bun run check` |
+| `test` | one per suite | unit | the `filet test` command, with `-race` for Go |
+| `fuzz` | `go`, `rust` | unit with a fuzz target | `filet fuzz -mode seeds` |
+| `douane` | `douane` | repository | `douane scan -fail critical -scope prod .` |
+
+A row names its unit after the step, so a suite app reads `format:gofmt apps/api`,
+`analyze:bun-check apps/client`, `test:go apps/api`. A step at the path itself carries no suffix.
+Above the table the gate prints the units it covered:
+
+```text
+  units: apps/api (go), apps/client (bun)
+```
+
+A language with source files but no unit fails instead of vanishing from the table. `.go` files
+with no `go.mod` fail `format:gofmt`, `analyze:vet` and `test:go` with
+`12 .go files but no go.mod found`; `.rs` files with no `Cargo.toml` and `.ts`, `.tsx`, `.svelte` or
+`.vue` files with no `package.json` carrying a `check` or `test` script fail the same way.
 
 The gate stops at the first failed step and lists the rest as `not-run`; `-keep-going` runs every
 step. A step whose tool is not on `PATH` is `skipped: <tool> not found`, never passed. The command
 exits 0 only when no step failed, and prints one table of step, status and duration.
-`-format json` prints the same table as one JSON document (`{"passed": bool, "steps": [...]}`) on
-stdout and moves the step output to stderr.
+`-format json` prints the same table as one JSON document
+(`{"passed": bool, "units": [{"path", "kinds"}], "steps": [...]}`, every step carrying its `unit`)
+on stdout and moves the step output to stderr.
 
 ```yaml
 gate:
   disable: [douane]          # a phase or a step name
   requireTools: [staticcheck] # a missing tool fails the gate instead of skipping
 ```
+
+`disable` takes a phase (`format`, `check`, `analyze`, `test`, `fuzz`, `douane`) or a step name, and
+applies to that step in every unit. An unknown name in either list is an error that names the
+valid ones, so a typo cannot quietly loosen the gate.
 
 ## In CI
 

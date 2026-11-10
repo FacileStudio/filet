@@ -11,10 +11,12 @@ import (
 	"time"
 )
 
-// Suite is one detected test command for a project or workspace member.
+// Suite is one detected test command for a project or workspace member. Unit
+// is the member's path relative to the discovery target, "." for the target.
 type Suite struct {
 	Name string
 	Dir  string
+	Unit string
 	Cmd  string
 	Args []string
 }
@@ -22,6 +24,7 @@ type Suite struct {
 // Result is the outcome of running a Suite.
 type Result struct {
 	Suite    string        `json:"suite"`
+	Unit     string        `json:"unit,omitempty"`
 	Command  string        `json:"command"`
 	ExitCode int           `json:"exitCode"`
 	Millis   int64         `json:"durationMs"`
@@ -55,16 +58,22 @@ func DetectSuites(dir string) []Suite {
 	return out
 }
 
-func nodeSuite(dir string, exists func(string) bool) Suite {
-	hasScript := false
-	if raw, err := os.ReadFile(filepath.Join(dir, "package.json")); err == nil {
-		var pkg struct {
-			Scripts map[string]string `json:"scripts"`
-		}
-		if json.Unmarshal(raw, &pkg) == nil {
-			_, hasScript = pkg.Scripts["test"]
-		}
+func packageScripts(dir string) map[string]string {
+	raw, err := os.ReadFile(filepath.Join(dir, "package.json"))
+	if err != nil {
+		return nil
 	}
+	var pkg struct {
+		Scripts map[string]string `json:"scripts"`
+	}
+	if json.Unmarshal(raw, &pkg) != nil {
+		return nil
+	}
+	return pkg.Scripts
+}
+
+func nodeSuite(dir string, exists func(string) bool) Suite {
+	_, hasScript := packageScripts(dir)["test"]
 	switch {
 	case exists("bun.lock") || exists("bun.lockb"):
 		if hasScript {
@@ -85,10 +94,23 @@ func (s Suite) Command() string {
 	return s.Cmd + " " + strings.Join(s.Args, " ")
 }
 
+// Label is the name a heading or summary row shows: the suite name, then its
+// unit when the suite does not sit at the target itself.
+func (s Suite) Label() string {
+	return withUnit(s.Name, s.Unit)
+}
+
+func withUnit(name, unit string) string {
+	if unit == "" || unit == "." {
+		return name
+	}
+	return name + " " + unit
+}
+
 // RunSuite executes one suite, streaming its output to w.
 func RunSuite(s Suite, extra []string, w io.Writer) Result {
 	args := append(append([]string{}, s.Args...), extra...)
-	res := Result{Suite: s.Name, Command: s.Cmd + " " + strings.Join(args, " ")}
+	res := Result{Suite: s.Name, Unit: s.Unit, Command: s.Cmd + " " + strings.Join(args, " ")}
 
 	if _, err := exec.LookPath(s.Cmd); err != nil {
 		res.ExitCode = 127

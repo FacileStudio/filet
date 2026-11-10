@@ -10,6 +10,7 @@ func checkStep(cfg *Config, target string) GateStep {
 	return GateStep{
 		Phase:   "check",
 		Name:    "check",
+		Unit:    ".",
 		Command: "filet check " + target,
 		Run: func(w io.Writer) (StepStatus, string) {
 			report, err := Analyze(cfg, target)
@@ -28,18 +29,44 @@ func checkStep(cfg *Config, target string) GateStep {
 	}
 }
 
-func fuzzSteps(cfg *Config, target string) ([]GateStep, error) {
+func fuzzSteps(cfg *Config, target string, units []Unit) ([]GateStep, error) {
 	targets, err := DiscoverFuzzTargets(cfg, target)
 	if err != nil {
 		return nil, err
 	}
 	var out []GateStep
 	for _, lang := range []string{"go", "rust"} {
-		if picked := targetsIn(targets, lang); len(picked) > 0 {
-			out = append(out, fuzzGroupStep(lang, picked))
+		order, groups := groupByUnit(units, targetsIn(targets, lang))
+		for _, unit := range order {
+			out = append(out, fuzzGroupStep(lang, unit, groups[unit]))
 		}
 	}
 	return out, nil
+}
+
+func groupByUnit(units []Unit, targets []FuzzTarget) ([]string, map[string][]FuzzTarget) {
+	var order []string
+	groups := map[string][]FuzzTarget{}
+	for _, t := range targets {
+		unit := owningUnit(units, t)
+		if _, seen := groups[unit]; !seen {
+			order = append(order, unit)
+		}
+		groups[unit] = append(groups[unit], t)
+	}
+	return order, groups
+}
+
+func owningUnit(units []Unit, t FuzzTarget) string {
+	kind := map[string]string{"go": "go", "rust": "cargo"}[t.Lang]
+	best, depth := ".", -1
+	for _, u := range units {
+		owns := u.Dir == t.Dir || underAny(t.Dir, []string{u.Dir})
+		if owns && hasSuite(u.Suites, kind) && len(u.Dir) > depth {
+			best, depth = u.Path, len(u.Dir)
+		}
+	}
+	return best
 }
 
 func targetsIn(targets []FuzzTarget, lang string) []FuzzTarget {
@@ -52,12 +79,13 @@ func targetsIn(targets []FuzzTarget, lang string) []FuzzTarget {
 	return out
 }
 
-func fuzzGroupStep(lang string, targets []FuzzTarget) GateStep {
+func fuzzGroupStep(lang, unit string, targets []FuzzTarget) GateStep {
 	return GateStep{
 		Phase:   "fuzz",
 		Name:    lang,
 		Tool:    fuzzTool(lang),
-		Command: "filet fuzz -mode seeds",
+		Unit:    unit,
+		Command: "filet fuzz -mode seeds " + unit,
 		Run: func(w io.Writer) (StepStatus, string) {
 			return foldFuzz(RunFuzz(targets, FuzzOptions{Mode: FuzzSeeds}, w))
 		},

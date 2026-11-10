@@ -3,6 +3,7 @@ package filet
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 )
@@ -14,6 +15,34 @@ import (
 type GateConfig struct {
 	Disable      []string `yaml:"disable"`
 	RequireTools []string `yaml:"requireTools"`
+}
+
+var gateStepNames = []string{
+	"format", "check", "analyze", "test", "fuzz", "douane",
+	"gofmt", "cargo-fmt", "vet", "staticcheck", "clippy", "bun-check",
+	"go", "cargo", "deno", "bun", "pnpm", "yarn", "npm", "pytest", "rust", "node",
+}
+
+var gateToolNames = []string{
+	"gofmt", "go", "staticcheck", "cargo", "cargo-fmt", "cargo-clippy", "cargo-fuzz",
+	"bun", "deno", "pnpm", "yarn", "npm", "pytest", "douane",
+}
+
+func (g GateConfig) validate() error {
+	if err := knownNames("disable", "step", g.Disable, gateStepNames); err != nil {
+		return err
+	}
+	return knownNames("requireTools", "tool", g.RequireTools, gateToolNames)
+}
+
+func knownNames(key, what string, names, valid []string) error {
+	for _, n := range names {
+		if !slices.Contains(valid, n) {
+			sorted := slices.Sorted(slices.Values(valid))
+			return fmt.Errorf("%s: unknown %s %q (valid: %s)", key, what, n, strings.Join(sorted, ", "))
+		}
+	}
+	return nil
 }
 
 func (g GateConfig) disables(s GateStep) bool {
@@ -50,10 +79,15 @@ func decodeYAML(raw []byte, v any) (err error) {
 }
 
 // GateSettings returns the gate: block of the loaded config file, or the zero
-// value when the project has no config file.
+// value when the project has no config file. A name in disable or
+// requireTools that no step or tool carries is an error naming the valid ones,
+// so a typo cannot quietly loosen the gate.
 func (c *Config) GateSettings() (GateConfig, error) {
 	e, err := c.extras()
-	return e.Gate, err
+	if err != nil {
+		return GateConfig{}, err
+	}
+	return e.Gate, e.Gate.validate()
 }
 
 func (c *Config) hintFuzz() bool {
