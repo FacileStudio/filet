@@ -1,12 +1,13 @@
 module github.com/FacileStudio/filet
 
-go 1.26.5
+go 1.26.10
 
 require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/goccy/go-yaml v1.19.2
 	github.com/muesli/termenv v0.16.0
 	github.com/tree-sitter/go-tree-sitter v0.24.0
+	golang.org/x/tools v0.50.0
 )
 
 require (
@@ -24,5 +25,4 @@ require (
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/tools v0.50.0 // indirect
 )
