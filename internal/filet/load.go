@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/goccy/go-yaml"
 )
 
 // LoadConfig walks up from dir looking for a config file and merges it over the defaults.
@@ -30,7 +28,7 @@ func LoadConfig(dir string) (*Config, string, error) {
 	if err := applyPreset(cfg, raw); err != nil {
 		return nil, path, err
 	}
-	if err := yaml.Unmarshal(raw, cfg); err != nil {
+	if err := decodeYAML(raw, cfg); err != nil {
 		return nil, path, err
 	}
 	cfg.raw = raw
@@ -84,7 +82,7 @@ func applyPreset(cfg *Config, raw []byte) error {
 	var head struct {
 		Preset string `yaml:"preset"`
 	}
-	if err := yaml.Unmarshal(raw, &head); err != nil {
+	if err := decodeYAML(raw, &head); err != nil {
 		return err
 	}
 	if head.Preset == "" {
@@ -114,7 +112,7 @@ func applyGlobalLSP(cfg *Config) error {
 			Servers map[string]Server `yaml:"servers"`
 		} `yaml:"lsp"`
 	}
-	if err := yaml.Unmarshal(raw, &layer); err != nil {
+	if err := decodeYAML(raw, &layer); err != nil {
 		return nil
 	}
 	maps.Copy(cfg.LSP.Servers, layer.LSP.Servers)
