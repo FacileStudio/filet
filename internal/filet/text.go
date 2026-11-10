@@ -25,7 +25,7 @@ func trailingComment(ext, stripped string) bool {
 		i += search
 		search = i + len(marker)
 		if i == 0 {
-			continue
+			return false
 		}
 		before := stripped[i-1]
 		skip := before == '\\' || before == ':' || (braceless[ext] && before == '$')

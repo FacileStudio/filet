@@ -29,3 +29,10 @@ func TestShellExpansionIsNotAnInlineComment(t *testing.T) {
 		}
 	}
 }
+
+func TestCommentQuotingAMarkerIsNotAnInlineComment(t *testing.T) {
+	f := source(t, "c.go", "package p\n\n// a directive (//nolint:, //go:) is left alone.\n")
+	if n := countRule(CheckGeneric(DefaultConfig(), f), "gen.comment.inline"); n != 0 {
+		t.Fatalf("a full-line comment that quotes // was flagged %d times", n)
+	}
+}
