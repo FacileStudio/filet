@@ -44,6 +44,7 @@ var registry = []Rule{
 	{"go.receiver.inconsistent", "same type uses different receiver names"},
 	{"go.leak.resource", "io.Closer value without a deferred Close() in the same scope"},
 	{"go.err.nilerr", "function handles error but returns nil, nil"},
+	{"test.fuzz.missing", "Parse*/Decode*/Unmarshal* over []byte, string or io.Reader in a package with no Fuzz target (style.hintFuzz)"},
 	{"arch.dir.missing", "architecture.requiredDirs entry is absent"},
 	{"arch.dir.forbidden", "path matches architecture.forbiddenDirs"},
 	{"arch.file.missing", "directory matching an architecture.requiredFiles glob lacks a required file"},

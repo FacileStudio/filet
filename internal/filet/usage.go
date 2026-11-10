@@ -81,6 +81,8 @@ func usageSections() []usageSection {
 			{cmd: "filet clean", detail: "[-dry-run] [path]", desc: "Apply the auto-fixable checks in place."},
 			{cmd: "filet docker", detail: "[flags] [path]", desc: "Roast every Dockerfile found under path."},
 			{cmd: "filet test", detail: "[flags] [path]", desc: "Detect and run the project's test suites."},
+			{cmd: "filet fuzz", detail: "[flags] [path]", desc: "Replay or smoke-fuzz Go and Rust fuzz targets."},
+			{cmd: "filet gate", detail: "[flags] [path]", desc: "Run format, check, analyzers, tests, fuzz seeds, douane."},
 			{cmd: "filet init", detail: "[flags] [path]", desc: "Scaffold filet.yml (-preset relaxed|epitech)."},
 			{cmd: "filet rules", detail: "", desc: "List every rule id."},
 			{cmd: "filet version", detail: "", desc: "Print the version."},
@@ -99,6 +101,8 @@ func usageSections() []usageSection {
 			{cmd: "filet clean -dry-run .", detail: "", desc: ""},
 			{cmd: "filet docker .", detail: "", desc: ""},
 			{cmd: "filet test ./apps/api", detail: "", desc: ""},
+			{cmd: "filet fuzz -mode smoke -fuzztime 10s .", detail: "", desc: ""},
+			{cmd: "filet gate -keep-going .", detail: "", desc: ""},
 			{cmd: "filet init -preset relaxed", detail: "", desc: ""},
 		}},
 	}

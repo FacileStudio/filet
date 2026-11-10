@@ -65,6 +65,7 @@ var frozenRules = []string{
 	"go.struct.fields",
 	"go.leak.resource",
 	"go.err.nilerr",
+	"test.fuzz.missing",
 	"ts.func.complexity",
 	"ts.func.long",
 	"ts.func.params",

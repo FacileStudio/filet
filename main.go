@@ -40,6 +40,10 @@ func dispatch(cmd string, rest []string) int {
 		return docker(rest)
 	case "test":
 		return test(rest)
+	case "fuzz":
+		return fuzz(rest)
+	case "gate":
+		return gate(rest)
 	case "init":
 		return initConfig(rest)
 	case "rules":
