@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.19.0] — 2026-11-10
 
 ### Added
 - `preset: facile`, the Facile suite standard that Sonde, Capsule and Sablier's
@@ -37,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fuzz targets for filet's own parsers: `FuzzParseDockerfile` and
   `FuzzLoadConfig`.
 - The action takes an optional `command` input, `check` (default) or `gate`.
+
+### Changed
+- filet requires Go 1.26.10, and the release workflow builds with the Go
+  version in `go.mod` instead of `stable`.
 
 ### Fixed
 - `parallelFor` never sent a job to its workers, so on `main` since 83965e7
