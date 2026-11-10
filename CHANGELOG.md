@@ -4,6 +4,32 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `filet fuzz` discovers Go `func Fuzz*(f *testing.F)` targets and Rust
+  `fuzz/fuzz_targets/*.rs` targets. The default `-mode seeds` replays the seed
+  corpus; `-mode smoke` fuzzes each target for `-fuzztime` (default 30s) within a
+  total `-budget` (default 5m). A crash exits 1 and prints the failing input's
+  path. `-list` prints the targets. A missing `cargo-fuzz` skips a Rust target.
+- `filet gate` runs format, `filet check`, the analyzers found on `PATH`
+  (`go vet`, `staticcheck`, `cargo clippy`, `bun run check`), the test suites
+  with `-race` for Go, fuzz seeds and `douane scan`, in order, and prints one
+  summary table, or one JSON document with `-format json`. It stops at the
+  first failure unless `-keep-going`. A missing tool is skipped, never passed.
+  A `gate:` block in `filet.yml` disables steps and lists required tools.
+- Rule `test.fuzz.missing` (info, off unless `style.hintFuzz: true`): a
+  `Parse*`, `Decode*` or `Unmarshal*` function over `[]byte`, `string` or
+  `io.Reader` in a package with no fuzz target.
+- Fuzz targets for filet's own parsers: `FuzzParseDockerfile` and
+  `FuzzLoadConfig`.
+- The action takes an optional `command` input, `check` (default) or `gate`.
+
+### Fixed
+- A malformed `filet.yml` such as `ignore: !x` is reported as an error instead
+  of crashing filet. The YAML decoder panics on a tagged scalar decoded into a
+  list; `FuzzLoadConfig` found it.
+
 ## [0.18.2] — 2026-09-23
 
 ### Fixed

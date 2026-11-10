@@ -13,6 +13,12 @@ inputs:
   path:
     description: Directory to check, relative to the repository root.
     default: .
+  command:
+    description: >-
+      check runs filet check with annotations, the summary and the optional
+      SARIF and Antenne steps. gate runs filet gate instead, which needs every
+      tool it should run on PATH.
+    default: check
   fail-on:
     description: Severity that fails the job — info, warn, error or never.
     default: error
@@ -57,8 +63,16 @@ runs:
         GOBIN="${RUNNER_TEMP}/filet-bin" go install "github.com/FacileStudio/filet@${FILET_VERSION}"
         echo "${RUNNER_TEMP}/filet-bin" >> "$GITHUB_PATH"
 
+    - name: gate
+      if: ${{ inputs.command == 'gate' }}
+      shell: bash
+      env:
+        FILET_PATH: ${{ inputs.path }}
+      run: filet gate "$FILET_PATH"
+
     - name: check
       id: check
+      if: ${{ inputs.command != 'gate' }}
       shell: bash
       env:
         FILET_PATH: ${{ inputs.path }}
