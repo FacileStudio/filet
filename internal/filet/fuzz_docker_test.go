@@ -1,15 +1,12 @@
 package filet
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
 
 func FuzzParseDockerfile(f *testing.F) {
-	if seed, err := os.ReadFile(filepath.Join("..", "..", "testdata", "Dockerfile.bad")); err == nil {
-		f.Add(seed)
-	}
+	f.Add([]byte("FROM golang:latest\nENV DB_PASSWORD=hunter2\nCOPY . .\nRUN apt-get update && apt-get install -y curl\nRUN go build -o app .\nCMD ./app\n"))
 	f.Add([]byte("FROM golang:1.26 AS build\nRUN go build \\\n  -o /app .\nFROM scratch\nCOPY --from=build /app /app\n"))
 	f.Add([]byte("\r\n# comment\n\\\n\tRUN\\"))
 	f.Fuzz(func(t *testing.T, src []byte) {
