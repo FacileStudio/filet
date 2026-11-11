@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.3] — 2026-11-11
+
+### Fixed
+- `filet gate` ignored the ratchet baseline that `filet check` reads, so a
+  repository with a `.filet-baseline.json` could never get a green gate. The
+  gate's check step now applies the baseline and the inert-config warnings
+  exactly as `filet check` does, and fails only on findings the baseline does
+  not excuse.
+
 ## [0.19.2] — 2026-11-10
 
 ### Fixed
