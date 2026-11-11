@@ -1,5 +1,5 @@
 [tools]
-go = "1.26.10"
+go = "1.26.11"
 
 [tasks.build]
 description = "build the filet binary into ./bin"
