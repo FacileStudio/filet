@@ -17,11 +17,16 @@ func checkStep(cfg *Config, target string) GateStep {
 			if err != nil {
 				return StepFailed, err.Error()
 			}
-			if err := WriteLines(w, report); err != nil {
+			report.Findings = append(report.Findings, InertKeys(cfg, target)...)
+			shown, gate, err := Ratchet(cfg, target, "", report)
+			if err != nil {
 				return StepFailed, err.Error()
 			}
-			found := count(len(report.Findings), "finding", "findings")
-			if !strings.EqualFold(cfg.FailOn, "never") && FailLevel(cfg, report) {
+			if err := WriteLines(w, shown); err != nil {
+				return StepFailed, err.Error()
+			}
+			found := count(len(shown.Findings), "finding", "findings")
+			if !strings.EqualFold(cfg.FailOn, "never") && FailLevel(cfg, gate) {
 				return StepFailed, found
 			}
 			return StepPassed, found
