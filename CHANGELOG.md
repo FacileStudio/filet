@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.4] — 2026-11-11
+
+### Security
+- build: Go 1.26.11 (`go` directive, mise pin). It fixes GO-2026-6848 to GO-2026-6859 in the standard library and toolchain, which douane reported as unscored gaps and which failed the gate.
+
 ## [0.19.3] — 2026-11-11
 
 ### Fixed
