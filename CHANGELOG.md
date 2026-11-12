@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] — 2026-11-12
+
+### Added
+- `gen.license.required`, opt-in through `style.requireLicense: true`, which
+  no preset sets (`facile` included). Once enabled, it warns when the config
+  root has no `LICENSE`, `LICENSE.md`, `LICENSE.txt` or `COPYING`, and when a
+  root `package.json` or `Cargo.toml` leaves its `license` field unset or
+  names a licence that disagrees with the LICENSE text (`AGPL-3.0-only` and
+  `MIT` are recognised). A repository that does not set the key sees no
+  change.
+
+### Fixed
+- `filet gate`'s gofmt step reported files under `vendor/`, so a repository
+  that vendors had to disable the step. It now drops every file under a
+  directory the unit walk skips (`vendor`, `node_modules`, `testdata`, hidden
+  directories and `ignore:` entries).
+
 ## [0.19.4] — 2026-11-11
 
 ### Security
