@@ -41,6 +41,7 @@ var frozenRules = []string{
 	"gen.comment.inline",
 	"gen.commented.code",
 	"gen.config.inert",
+	"gen.license.required",
 	"gen.file.funcs",
 	"gen.file.long",
 	"gen.line.long",

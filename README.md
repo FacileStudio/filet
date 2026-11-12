@@ -438,7 +438,7 @@ members. A suite app with `apps/api/go.mod` and `apps/client/package.json` gives
 
 | Phase | Step | Runs per | Command |
 |---|---|---|---|
-| `format` | `gofmt` | Go module | `gofmt -l .` (fails when it lists a file) |
+| `format` | `gofmt` | Go module | `gofmt -l .` (fails when it lists a file outside a directory the walk skips, such as `vendor/`) |
 | `format` | `cargo-fmt` | crate | `cargo fmt --check` |
 | `check` | `check` | repository | `filet check`, in process |
 | `analyze` | `vet` | Go module | `go vet ./...` |
@@ -537,6 +537,13 @@ success.
 ## Rules
 
 `filet rules` prints the full list. Disable any of them by id in `filet.yml`.
+
+`gen.license.required` warns when the config root holds no `LICENSE`, `LICENSE.md`, `LICENSE.txt`
+or `COPYING`. When a `package.json` or `Cargo.toml` sits there too, it also warns when that
+manifest's `license` field is unset, or names another licence than the LICENSE text. filet
+recognises two licences by their text: `AGPL-3.0-only` and `MIT`. Any other text only needs the
+field to be set. The rule runs only when `filet check` covers the whole config root, and it is a
+warning, so the `facile` preset (`failOn: error`) reports it without failing.
 
 ## Stability
 

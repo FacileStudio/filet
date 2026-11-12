@@ -47,6 +47,7 @@ var registry = []Rule{
 	{"gen.config.inert", "filet.yml sets a key no extension in extensions: can fire"},
 	{"gen.baseline.stale", "a (rule, path) count dropped below the ratchet baseline; run -baseline update"},
 	{"test.fuzz.missing", "Parse*/Decode*/Unmarshal* over []byte, string or io.Reader in a package with no Fuzz target (style.hintFuzz)"},
+	{"gen.license.required", "no LICENSE, LICENSE.md, LICENSE.txt or COPYING at the root, or a package.json or Cargo.toml license field that is unset or disagrees with it"},
 	{"arch.dir.missing", "architecture.requiredDirs entry is absent"},
 	{"arch.dir.forbidden", "path matches architecture.forbiddenDirs"},
 	{"arch.file.missing", "directory matching an architecture.requiredFiles glob lacks a required file"},

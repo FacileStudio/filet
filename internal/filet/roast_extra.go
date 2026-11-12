@@ -9,6 +9,10 @@ var punchlinesExtra = map[string][]string{
 		"A rule nobody can break is a rule nobody is following.",
 		"The config promises a check the code never gets.",
 	},
+	"gen.license.required": {
+		"No licence means all rights reserved, whatever the README hopes.",
+		"The code is open. The permission to use it is not written down.",
+	},
 	"gen.baseline.stale": {
 		"You paid off debt and forgot to write it down.",
 		"The ratchet only clicks one way. Click it.",

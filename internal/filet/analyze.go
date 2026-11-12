@@ -35,6 +35,9 @@ func Analyze(cfg *Config, target string) (Report, error) {
 	report.Findings = checkFilesParallel(w, cfg, files)
 	report.Findings = append(report.Findings, checkGoCached(w, cfg, files)...)
 	report.Findings = append(report.Findings, checkRestCached(w, cfg, files)...)
+	if RootRelative(cfg.root, target) == "." {
+		report.Findings = append(report.Findings, CheckLicense(cfg)...)
+	}
 	w.write()
 
 	SortFindings(report.Findings)
