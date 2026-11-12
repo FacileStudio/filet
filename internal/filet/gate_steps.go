@@ -26,7 +26,7 @@ func PlanGate(cfg *Config, target string) (GatePlan, error) {
 		return GatePlan{}, err
 	}
 	missing := missingSteps(scan)
-	steps := inPhase("format", formatSteps(scan.Units), missing)
+	steps := inPhase("format", formatSteps(cfg, scan.Units), missing)
 	steps = append(steps, checkStep(cfg, target))
 	steps = append(steps, inPhase("analyze", analyzeSteps(scan.Units), missing)...)
 	steps = append(steps, inPhase("test", testSteps(scan.Units), missing)...)
@@ -44,11 +44,11 @@ func inPhase(phase string, steps, missing []GateStep) []GateStep {
 	return steps
 }
 
-func formatSteps(units []Unit) []GateStep {
+func formatSteps(cfg *Config, units []Unit) []GateStep {
 	var out []GateStep
 	for _, u := range units {
 		if hasSuite(u.Suites, "go") {
-			out = append(out, gofmtStep(u.suite("gofmt", "gofmt", "-l", ".")))
+			out = append(out, gofmtStep(cfg, u.suite("gofmt", "gofmt", "-l", ".")))
 		}
 		if hasSuite(u.Suites, "cargo") {
 			out = append(out, suiteStep("format", "cargo-fmt", "cargo-fmt", u.suite("cargo-fmt", "cargo", "fmt", "--check")))

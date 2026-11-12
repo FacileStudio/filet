@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 )
 
@@ -33,7 +34,7 @@ func statusOf(res Result) (StepStatus, string) {
 	}
 }
 
-func gofmtStep(s Suite) GateStep {
+func gofmtStep(cfg *Config, s Suite) GateStep {
 	return GateStep{
 		Phase:   "format",
 		Name:    "gofmt",
@@ -42,14 +43,37 @@ func gofmtStep(s Suite) GateStep {
 		Command: s.Command(),
 		Run: func(w io.Writer) (StepStatus, string) {
 			var buf bytes.Buffer
-			status, detail := statusOf(RunSuite(s, nil, io.MultiWriter(w, &buf)))
+			status, detail := statusOf(RunSuite(s, nil, &buf))
+			files := unformatted(cfg, s.Dir, buf.String())
+			for _, f := range files {
+				fmt.Fprintln(w, f)
+			}
 			if status != StepPassed {
 				return status, detail
 			}
-			if files := strings.Fields(buf.String()); len(files) > 0 {
+			if len(files) > 0 {
 				return StepFailed, count(len(files), "file needs gofmt", "files need gofmt")
 			}
 			return StepPassed, ""
 		},
 	}
+}
+
+func unformatted(cfg *Config, dir, listing string) []string {
+	var out []string
+	for f := range strings.FieldsSeq(listing) {
+		if !inSkippedDir(cfg, dir, f) {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+func inSkippedDir(cfg *Config, dir, file string) bool {
+	for rel := filepath.Dir(filepath.Clean(file)); rel != "." && rel != string(filepath.Separator); rel = filepath.Dir(rel) {
+		if skipUnitDir(cfg, filepath.Join(dir, rel), dir, filepath.Base(rel)) != nil {
+			return true
+		}
+	}
+	return false
 }
