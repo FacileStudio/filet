@@ -52,7 +52,8 @@ func (g GateConfig) disables(s GateStep) bool {
 type configExtras struct {
 	Gate  GateConfig `yaml:"gate"`
 	Style struct {
-		HintFuzz bool `yaml:"hintFuzz"`
+		HintFuzz       bool `yaml:"hintFuzz"`
+		RequireLicense bool `yaml:"requireLicense"`
 	} `yaml:"style"`
 }
 
@@ -93,4 +94,9 @@ func (c *Config) GateSettings() (GateConfig, error) {
 func (c *Config) hintFuzz() bool {
 	e, err := c.extras()
 	return err == nil && e.Style.HintFuzz
+}
+
+func (c *Config) requireLicense() bool {
+	e, err := c.extras()
+	return err == nil && e.Style.RequireLicense
 }

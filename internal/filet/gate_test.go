@@ -29,9 +29,6 @@ func fakeTools(t *testing.T, exits map[string]int) string {
 	if err := writeTemp(filepath.Join(proj, "go.mod"), "module p\n\ngo 1.26\n"); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeTemp(filepath.Join(proj, "LICENSE"), "MIT License\n"); err != nil {
-		t.Fatal(err)
-	}
 	return proj
 }
 

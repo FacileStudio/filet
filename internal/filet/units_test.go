@@ -18,9 +18,6 @@ func unitFixture(t *testing.T, name string, tools ...string) string {
 	if err := os.Mkdir(filepath.Join(proj, ".git"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := writeTemp(filepath.Join(proj, "LICENSE"), "MIT License\n"); err != nil {
-		t.Fatal(err)
-	}
 	t.Setenv("PATH", bin)
 	t.Setenv("GATE_LOG", filepath.Join(bin, "log"))
 	for _, tool := range tools {

@@ -11,6 +11,9 @@ const agplText = "GNU AFFERO GENERAL PUBLIC LICENSE\nVersion 3, 19 November 2007
 
 func licenseFindings(t *testing.T, files map[string]string) []Finding {
 	t.Helper()
+	if _, ok := files["filet.yml"]; !ok {
+		files["filet.yml"] = "style:\n  requireLicense: true\n"
+	}
 	proj := t.TempDir()
 	for name, body := range files {
 		if err := writeTemp(filepath.Join(proj, name), body); err != nil {
@@ -71,6 +74,14 @@ func TestLicenseManifestMismatchOrUnsetWarns(t *testing.T) {
 	for _, f := range got {
 		if want[filepath.Base(f.File)] != f.Message || f.Severity != Warn {
 			t.Errorf("unexpected finding %+v", f)
+		}
+	}
+}
+
+func TestLicenseSilentUnlessEnabled(t *testing.T) {
+	for name, cfg := range map[string]string{"default": "kind: cli\n", "facile": "preset: facile\n"} {
+		if got := licenseFindings(t, map[string]string{"filet.yml": cfg, "main.go": "package main\n"}); len(got) != 0 {
+			t.Errorf("%s: rule fired without style.requireLicense: %+v", name, got)
 		}
 	}
 }

@@ -20,12 +20,13 @@ var licenseTexts = []struct{ marker, id string }{
 
 var cargoLicense = regexp.MustCompile(`(?m)^\s*license(\.workspace)?\s*=\s*("([^"]*)"|true)`)
 
-// CheckLicense warns when the config root has no LICENSE, LICENSE.md,
-// LICENSE.txt or COPYING, and when a package.json or Cargo.toml there leaves
-// its license field empty or names a different licence than the LICENSE text.
-// Only AGPL-3.0-only and MIT are recognised by their text.
+// CheckLicense is opt-in through style.requireLicense. It warns when the
+// config root has no LICENSE, LICENSE.md, LICENSE.txt or COPYING, and when a
+// package.json or Cargo.toml there leaves its license field empty or names a
+// different licence than the LICENSE text. Only AGPL-3.0-only and MIT are
+// recognised by their text.
 func CheckLicense(cfg *Config) []Finding {
-	if !cfg.Enabled(licenseRule) {
+	if !cfg.Enabled(licenseRule) || !cfg.requireLicense() {
 		return nil
 	}
 	path, text := readLicense(cfg.root)

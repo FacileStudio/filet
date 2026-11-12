@@ -538,12 +538,13 @@ success.
 
 `filet rules` prints the full list. Disable any of them by id in `filet.yml`.
 
-`gen.license.required` warns when the config root holds no `LICENSE`, `LICENSE.md`, `LICENSE.txt`
-or `COPYING`. When a `package.json` or `Cargo.toml` sits there too, it also warns when that
-manifest's `license` field is unset, or names another licence than the LICENSE text. filet
-recognises two licences by their text: `AGPL-3.0-only` and `MIT`. Any other text only needs the
-field to be set. The rule runs only when `filet check` covers the whole config root, and it is a
-warning, so the `facile` preset (`failOn: error`) reports it without failing.
+`gen.license.required` is opt-in, and no preset turns it on, `facile` included. Set
+`style.requireLicense: true` and it warns when the config root holds no `LICENSE`, `LICENSE.md`,
+`LICENSE.txt` or `COPYING`. When a `package.json` or `Cargo.toml` sits there too, it also warns
+when that manifest's `license` field is unset, or names another licence than the LICENSE text.
+filet recognises two licences by their text: `AGPL-3.0-only` and `MIT`. Any other text only needs
+the field to be set. The rule runs only when `filet check` covers the whole config root. It reports
+at `warn`, so a config with `failOn: info` or `warn` fails on it once enabled.
 
 ## Stability
 
