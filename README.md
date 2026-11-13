@@ -70,6 +70,7 @@ style:
   banGlobalMutable: true
   banInit: true
   banTrailingSpace: true
+  strict: false           # the go.strict.* family, see "Strict Go rules"
 
 disabled: [gen.line.long]
 failOn: error
@@ -78,7 +79,7 @@ failOn: error
 ### Presets
 
 `preset:` seeds the limits before your own keys are applied, so anything you write explicitly still
-wins. Four exist:
+wins. Five exist:
 
 | Preset | funcsPerFile | funcLines | funcStatements | fileLines | nesting | lineLength | complexity |
 |---|---|---|---|---|---|---|---|
@@ -86,6 +87,7 @@ wins. Four exist:
 | `relaxed` | off | 60 | 40 | 400 | 5 | 120 | 15 |
 | `epitech` | 5 | 20 | 15 | 400 | 3 | 80 | 10 |
 | `facile` | 8 | 30 | 25 | 250 | 4 | 120 | 10 |
+| `facile-strict` | 8 | 30 | 25 | 250 | 4 | 120 | 10 |
 
 `default` also turns on `banInlineComments`, `banTODO`, `banInit` and `banGlobalMutable`;
 `relaxed` turns all four off.
@@ -107,6 +109,10 @@ architecture:
 ```
 
 The same holds for `disabled:`: a repo that disables one more rule lists `gen.line.long` again.
+
+`facile-strict` is `facile` plus `style.strict: true`, which turns on the
+[strict Go rules](#strict-go-rules). It is opt-in: no repository gets those rules without naming
+this preset or setting the key.
 
 `epitech` is the real norm's numbers, and they were written for C: no closures, no `if err != nil`,
 no method receivers. On Go or TypeScript they fire constantly on code that is fine. Excellent as a
@@ -171,7 +177,7 @@ count, so treat it as a prompt to group, not a broken build.
 ### Keys that cannot fire
 
 Some keys drive rules that only run on some languages. `returns`, `structFields`,
-`interfaceMethods`, `requireDocComments`, `banGlobalMutable`, `banInit` and `format` are Go only;
+`interfaceMethods`, `requireDocComments`, `banGlobalMutable`, `banInit`, `format` and `strict` are Go only;
 `funcLines`, `funcStatements`, `params` and `complexity` need Go or a tree-sitter grammar (`.rs`);
 `funcsPerFile` needs Go or a language filet can spot a function declaration in. When `filet.yml`
 switches one of them on and no entry in `extensions:` can fire it, `filet check` reports
@@ -545,6 +551,30 @@ when that manifest's `license` field is unset, or names another licence than the
 filet recognises two licences by their text: `AGPL-3.0-only` and `MIT`. Any other text only needs
 the field to be set. The rule runs only when `filet check` covers the whole config root. It reports
 at `warn`, so a config with `failOn: info` or `warn` fails on it once enabled.
+
+### Strict Go rules
+
+`style.strict: true`, or `preset: facile-strict`, turns on the `go.strict.*` family. Each rule
+reports at `error`, because each finding is a defect rather than a matter of taste, and none of
+them runs on a `_test.go` file. They read the package's type information, so a package whose
+imports filet cannot resolve gets the `go.leak.resource` skip notice instead of silence.
+
+| Rule | Reports |
+|---|---|
+| `go.strict.switch` | a `switch` over an enum-like type (a defined integer or string type with two or more constants in its package) that has no `default` and misses some constants. Constants of another package count only when exported |
+| `go.strict.close` | a call whose `*http.Response`, `*sql.Rows` or `*os.File` result is discarded (`db.Query(q)` as a statement, `_, err := os.Create(p)`), and an `*http.Response` whose `Body` is never closed, returned, stored, wrapped in something with a `Close`, or passed to a deferred call or a function named for closing or draining it. A kept `*sql.Rows` or `*os.File` that is never closed stays `go.leak.resource`'s finding |
+| `go.strict.import` | `unsafe`, `"C"` (cgo) or `reflect` |
+| `go.strict.timeout` | an `http.Client` literal, `new(http.Client)` or zero-value `var` with no `Timeout`, and every use of `http.DefaultClient`, through `http.Get`, `Head`, `Post` and `PostForm` included. `Timeout: 0` written out is how a streaming client says it means no limit, and a `c.Timeout = d` elsewhere in the file counts |
+| `go.strict.sql` | `Query`, `QueryContext`, `QueryRow`, `QueryRowContext`, `Queryx`, `QueryRowx`, `Exec`, `ExecContext`, `MustExec`, `Prepare`, `PrepareContext` or `Raw` called with statement text built by `+`, `+=` or `fmt.Sprintf` from a string that is not a constant, a number, a `strconv` formatting or a driver-quoted identifier (a function named `*quote*` or `*sanitize*` outside `strconv`). Text that only passes through, such as a wrapper's parameter, is not reported |
+| `go.strict.goroutine` | a `go` statement inside a function taking an `http.ResponseWriter` and an `*http.Request` whose call and closure reach no `context.Context`, channel or `sync.WaitGroup`. A bare `context.Background()` or `context.TODO()` argument does not count |
+| `go.strict.assert` | a single-value type assertion `x.(T)`, which panics on any other type. The `v, ok` form and type switches are fine |
+| `go.strict.nilflow` | a pointer or interface result read before the error returned beside it is checked: `resp, err := c.Do(req)` then `defer resp.Body.Close()`. Only reads that cannot survive nil count (a field through a pointer, a method of an interface, `*p`); a pointer method call does not, since the method may accept a nil receiver. The scan stops at the first statement that mentions the error, compares the value with `nil` or assigns it again |
+
+Each rule is narrow on purpose, so that a finding is worth fixing. `go.strict.nilflow` follows
+only the statements after the call in the same block, and `go.strict.close` follows a response
+only inside the function that acquired it: a response passed to another function counts as
+handed off. Disable a rule by id when a repository has a reason, and use the ratchet baseline to
+adopt the family on a codebase that already has findings.
 
 ## Stability
 

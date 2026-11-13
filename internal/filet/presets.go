@@ -31,7 +31,16 @@ var presets = map[string]func(*Config){
 		c.Style.BanGlobalMutable = false
 		c.Style.BanInit = false
 	},
-	"facile": facilePreset,
+	"facile":        facilePreset,
+	"facile-strict": facileStrictPreset,
+}
+
+// facileStrictPreset is facile plus the strict Go family (style.strict). It is
+// opt-in: no repository gets the go.strict.* rules without naming this preset
+// or setting the key itself.
+func facileStrictPreset(c *Config) {
+	facilePreset(c)
+	c.Style.Strict = true
 }
 
 // facilePreset is the Facile suite standard: the filet.yml that Sonde, Capsule

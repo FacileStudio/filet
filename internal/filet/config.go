@@ -80,6 +80,9 @@ type Server struct {
 }
 
 // Style holds the opinionated toggles that are a matter of team taste.
+// Strict turns on the go.strict.* family: correctness and safety rules that
+// report at error and are off unless a config or the facile-strict preset
+// asks for them.
 type Style struct {
 	BanInlineComments  bool `yaml:"banInlineComments"`
 	BanTODO            bool `yaml:"banTODO"`
@@ -88,6 +91,7 @@ type Style struct {
 	BanInit            bool `yaml:"banInit"`
 	BanTrailingSpace   bool `yaml:"banTrailingSpace"`
 	Format             bool `yaml:"format"`
+	Strict             bool `yaml:"strict"`
 }
 
 // Cache configures the on-disk findings store. On by default: every Run stores

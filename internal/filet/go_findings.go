@@ -43,7 +43,18 @@ func runGoChecksInfo(cfg *Config, f SourceFile, fset *token.FileSet, parsed *ast
 	if cfg.Enabled("go.leak.resource") && info != nil {
 		g.resourceLeaks()
 	}
+	if cfg.Style.Strict {
+		g.strict()
+	}
 	return out
+}
+
+// needsTypes reports whether any enabled rule reads type information: the
+// leak rule, or the strict family behind style.strict. Without either, the
+// package is never type-checked, so a repository that opts into neither pays
+// nothing for them.
+func needsTypes(cfg *Config) bool {
+	return cfg.Enabled("go.leak.resource") || cfg.Style.Strict
 }
 
 // leakSkipFinding reports, once per package, that the leak rule could not run.
@@ -74,7 +85,7 @@ func makeGoFindingsAdder(cfg *Config, f SourceFile, fset *token.FileSet, out *[]
 // importing nothing but the standard library. Each file of a package is passed
 // the same result so cross-file symbols are available to the leak rule.
 func typeInfoFor(cfg *Config, fset *token.FileSet, files []*ast.File) *types.Info {
-	if !cfg.Enabled("go.leak.resource") || len(files) == 0 {
+	if !needsTypes(cfg) || len(files) == 0 {
 		return nil
 	}
 	if goRoot() == "" {

@@ -29,6 +29,7 @@ var keyReaches = []keyReach{
 	{"style.banGlobalMutable", goOnly},
 	{"style.banInit", goOnly},
 	{"style.format", goOnly},
+	{"style.strict", goOnly},
 }
 
 func goOnly(_ *Config, ext string) bool { return ext == ".go" }

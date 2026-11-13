@@ -51,6 +51,7 @@ style:
   banInit: %t
   banTrailingSpace: %t
   format: %t              # filet clean reformats Go source through the language formatter
+  strict: %t              # go.strict.*: exhaustive switches, closed bodies, timeouts, SQL built at run time
 
 # treesitter parses non-Go files (.rs, and any grammar filet vendors) to anchor
 # shape rules on real syntax instead of brace counting. On by default; each
@@ -89,7 +90,7 @@ func Scaffold(path, preset string) error {
 		l.FileLines, l.FuncsPerFile, l.FuncLines, l.FuncStatements, l.LineLength, l.Params, l.Returns,
 		l.Nesting, l.Complexity, l.StructFields, l.InterfaceMethods,
 		s.BanInlineComments, s.BanTODO, s.RequireDocComments, s.BanGlobalMutable, s.BanInit, s.BanTrailingSpace,
-		s.Format, cfg.FailOn)
+		s.Format, s.Strict, cfg.FailOn)
 
 	if preset != "" && preset != "default" {
 		body = strings.Replace(body, "# preset: "+preset, "preset: "+preset, 1)
