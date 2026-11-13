@@ -491,9 +491,9 @@ The repository ships a composite action. Annotations are unconditional; SARIF an
 report are opt-in.
 
 ```yaml
-- uses: FacileStudio/filet@v0.18.1
+- uses: FacileStudio/filet@v0.21.0
   with:
-    version: v0.18.1
+    version: v0.21.0
     path: .
     fail-on: error
 ```
@@ -514,7 +514,7 @@ permissions:
   security-events: write
 
 steps:
-  - uses: FacileStudio/filet@v0.18.1
+  - uses: FacileStudio/filet@v0.21.0
     with:
       sarif: 'true'
 ```
@@ -526,7 +526,7 @@ webhook provider, signed with HMAC-SHA256 over the body in `x-filet-signature-25
 never opens a socket — the action does the posting, so the linter stays runnable offline.
 
 ```yaml
-- uses: FacileStudio/filet@v0.18.1
+- uses: FacileStudio/filet@v0.21.0
   with:
     antenne-url: https://antenne.facile.studio/webhook/filet
     antenne-secret: ${{ secrets.ANTENNE_FILET_SECRET }}
@@ -592,7 +592,7 @@ revised is not worth much: the first set of defaults was wrong in ways only a re
 Pin a tag if you gate CI on the count:
 
 ```sh
-go install github.com/FacileStudio/filet@v0.18.1
+go install github.com/FacileStudio/filet@v0.21.0
 ```
 
 ## License

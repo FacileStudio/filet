@@ -4,6 +4,36 @@ All notable changes to this project are documented here. The format is
 [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] — 2026-11-13
+
+### Added
+- The strict Go rule family, opt-in through `style.strict: true` or the new
+  `facile-strict` preset (`facile` plus the key). Every rule reports at
+  `error` and skips `_test.go` files:
+  - `go.strict.switch`: a switch over an enum-like type with no `default`
+    that misses some of its constants.
+  - `go.strict.close`: a discarded `*http.Response`, `*sql.Rows` or
+    `*os.File` result, and a response `Body` that is never closed, returned,
+    stored or handed to a closer.
+  - `go.strict.import`: `unsafe`, cgo (`"C"`) or `reflect`.
+  - `go.strict.timeout`: an `http.Client` without a `Timeout`, and any use of
+    `http.DefaultClient`, `http.Get`, `Head`, `Post` or `PostForm`.
+  - `go.strict.sql`: statement text built by `+` or `fmt.Sprintf` from a
+    non-constant string, passed to `Query`, `Exec`, `Prepare`, `Raw` and their
+    `Context` forms.
+  - `go.strict.goroutine`: a goroutine started in an HTTP handler with no
+    context, channel or `sync.WaitGroup`.
+  - `go.strict.assert`: a single-value type assertion.
+  - `go.strict.nilflow`: a pointer or interface result read before the error
+    beside it is checked.
+  A repository that sets neither key sees no change: its packages are not even
+  type-checked for these rules.
+
+### Changed
+- The action's default `version` input is v0.21.0. It had stayed at v0.18.1.
+- The release workflow runs only on full version tags (`v*.*.*`), so moving
+  the floating `v0` tag no longer starts a release run that can only fail.
+
 ## [0.20.0] — 2026-11-12
 
 ### Added
